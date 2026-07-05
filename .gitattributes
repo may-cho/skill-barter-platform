@@ -1,0 +1,8 @@
+# Handle line endings automatically for files detected as text
+* text=auto
+
+# Explicitly set line endings to LF for shell scripts to prevent Docker crashes
+*.sh text eol=lf
+
+# Ensure Python files use standard LF line endings
+*.py text eol=lf
