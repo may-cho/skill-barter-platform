@@ -7,8 +7,6 @@ import ProfilePage from './pages/ProfilePage';
 import ProposalsPage, { NewProposalPage } from './pages/ProposalsPage';
 import CalendarPage from './pages/CalendarPage';
 import ReviewsPage from './pages/ReviewsPage';
-
-
 import LandingPage from './pages/LandingPage';
 
 export default function App() {
@@ -18,7 +16,6 @@ export default function App() {
         <Routes>
 
           <Route path="/" element={<LandingPage />} />
-
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
@@ -30,9 +27,7 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-
             <Route path="/discover" element={<HomePage />} />
-
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/proposals" element={<ProposalsPage />} />
             <Route path="/proposals/new" element={<NewProposalPage />} />
@@ -40,8 +35,8 @@ export default function App() {
             <Route path="/reviews" element={<ReviewsPage />} />
           </Route>
 
+          <Route path="*" element={<Navigate to="/discover" replace />} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

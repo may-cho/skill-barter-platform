@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from './ui';
 
 const links = [
-  { to: '/', label: 'Discover' },
+    { to: '/discover', label: 'Discover' },
   { to: '/proposals', label: 'Proposals' },
   { to: '/calendar', label: 'Calendar' },
   { to: '/profile', label: 'Profile' },
@@ -37,10 +37,14 @@ export function Layout() {
               ))}
             </nav>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-600 hidden sm:inline">{user?.username}</span>
-            <Button variant="ghost" onClick={logout}>Sign out</Button>
-          </div>
+
+
+<div className="flex items-center gap-3">
+  <span className="text-sm text-slate-600 hidden sm:inline">{user?.username}</span>
+
+
+  <Button variant="ghost" onClick={logout}>Sign out</Button>
+</div>
         </div>
       </header>
       <main className="max-w-6xl mx-auto px-4 py-8">

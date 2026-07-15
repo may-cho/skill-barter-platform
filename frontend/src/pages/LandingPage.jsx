@@ -1,8 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+
 
 export default function LandingPage() {
+  const { user } = useAuth();
   const navigate = useNavigate();
+  useEffect(() => {
+
+    if (user) {
+      navigate('/profile');
+    }
+  }, [user, navigate]);
 
   const [currentView, setCurrentView] = useState('home');
   const [openFaq, setOpenFaq] = useState(null);
