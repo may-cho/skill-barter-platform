@@ -161,7 +161,7 @@ export function NewProposalPage() {
   useEffect(() => {
     Promise.all([
       api.getMySkills(),
-      targetUserId ? api.getSkills(`?user=${targetUserId}&type=teach`) : Promise.resolve({ results: [] }),
+      targetUserId ? api.getSkills(`user=${targetUserId}&type=teach`) : api.getSkills('type=teach'),
     ]).then(([mine, theirs]) => {
       setSkills({ mine, theirs: theirs.results || theirs });
     }).finally(() => setLoading(false));

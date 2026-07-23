@@ -21,9 +21,10 @@ export default function ProposalChat({ proposalId }) {
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = import.meta.env.VITE_WS_HOST || `${protocol}//${window.location.hostname}:8000`;
-    const ws = new WebSocket(`${host}/ws/chat/proposal/${proposalId}/?token=${token}`);
+
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+
+  const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/chat/proposal/${proposalId}/?token=${token}`);
 
     ws.onopen = () => setConnected(true);
     ws.onclose = () => setConnected(false);

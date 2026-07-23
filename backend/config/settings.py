@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'apps.messaging',
     'apps.scheduling',
     'apps.reviews',
+    'apps.calendar_integration'
 ]
 
 MIDDLEWARE = [
@@ -149,3 +150,8 @@ CACHES = {
 # Google Calendar API hook placeholder
 GOOGLE_CALENDAR_CLIENT_ID = os.getenv('GOOGLE_CALENDAR_CLIENT_ID', '')
 GOOGLE_CALENDAR_CLIENT_SECRET = os.getenv('GOOGLE_CALENDAR_CLIENT_SECRET', '')
+GOOGLE_CALENDAR_REDIRECT_URI = os.getenv(
+    'GOOGLE_CALENDAR_REDIRECT_URI',
+    'http://localhost:8000/api/auth/google/callback/'
+)
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')

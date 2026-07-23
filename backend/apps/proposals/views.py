@@ -1,8 +1,10 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
+from django.db.models import Q
 from rest_framework import permissions, serializers, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action,api_view,permission_classes
 from rest_framework.response import Response
+
 
 from apps.skills.models import Skill, SkillType
 
@@ -17,6 +19,24 @@ class CounterOfferSerializer(serializers.ModelSerializer):
         fields = ('id', 'author', 'author_name', 'offered_hours', 'requested_hours', 'message', 'created_at')
         read_only_fields = ('id', 'author', 'author_name', 'created_at')
 
+class CalendarEventSerializer(serializers.Serializer):
+    title = serializers.SerializerMethodField()
+    start = serializers.DateTimeField(source="scheduled_start")
+    end = serializers.DateTimeField(source="scheduled_end")
+    extendedProps = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Proposal
+        fields = ['id','title','start','end','extendedProps']
+
+
+    def get_title(self, obj):
+        return f"#{obj.id}: {obj.offered_skill.title} <-> {object.requested_skill.title}"
+
+    def get_extendedProps(self, obj):
+        return {
+            'status' : obj.status
+        }
 
 class ProposalSerializer(serializers.ModelSerializer):
     sender_name = serializers.CharField(source='sender.username', read_only=True)
@@ -159,3 +179,16 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except DjangoValidationError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(ProposalSerializer(proposal).data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def calendar_events(request):
+   
+    proposals = Proposal.objects.filter(
+        Q(sender=request.user) | Q(receiver=request.user),
+        sheduled_start__isnull=False,
+    )
+    
+    serializer = CalendarEventSerializer(proposals, many=True)
+    return Response(serializer.data)

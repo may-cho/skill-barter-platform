@@ -11,3 +11,6 @@ daphne>=4.1,<5.0
 python-dotenv>=1.0,<2.0
 pytz>=2024.1
 whitenoise>=6.5.0
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib

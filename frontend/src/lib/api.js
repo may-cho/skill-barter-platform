@@ -2,6 +2,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 class ApiClient {
   constructor() {
+    console.log(API_BASE)
     this.base = API_BASE;
   }
 
@@ -145,6 +146,9 @@ class ApiClient {
 
   getReviews() {
     return this.json('/reviews/');
+  }
+  getCalendarEvents() {
+    return this.json('/calendar-events/')
   }
 }
 

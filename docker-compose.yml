@@ -8,18 +8,15 @@ services:
       - redis
     volumes:
       - ./backend:/app
-    environment:
-      POSTGRES_HOST: db
-      POSTGRES_DB: skill_barter
-      POSTGRES_USER: skill_barter
-      POSTGRES_PASSWORD: skill_barter
+    env_file:
+      - .env
   frontend:
     build: ./frontend
     ports:
       - "5173:5173"
     volumes:
       - ./frontend:/app
-      - /app/node_modules
+      - /app/node_modules 
   db:
     image: postgres:18.4-alpine
     environment:
