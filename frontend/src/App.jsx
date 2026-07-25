@@ -8,6 +8,8 @@ import ProposalsPage, { NewProposalPage } from './pages/ProposalsPage';
 import CalendarPage from './pages/CalendarPage';
 import ReviewsPage from './pages/ReviewsPage';
 import LandingPage from './pages/LandingPage';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminLayout from './components/AdminLayout';
 
 export default function App() {
   return (
@@ -33,6 +35,13 @@ export default function App() {
             <Route path="/proposals/new" element={<NewProposalPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/reviews" element={<ReviewsPage />} />
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<AdminDashboard />} />
+              <Route path="proposals" element={<AdminDashboard />} />
+              <Route path="skills" element={<AdminDashboard />} />
+              <Route path="notifications" element={<AdminDashboard />} />
+            </Route>
           </Route>
 
           <Route path="*" element={<Navigate to="/discover" replace />} />
