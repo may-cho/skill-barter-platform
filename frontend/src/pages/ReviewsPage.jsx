@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Button, Card, Input, Spinner, Textarea } from '../components/ui';
 
-// ရက်စွဲကို "1 day ago", "3 hours ago" စသည်ဖြင့် ပြောင်းပေးမည့် Helper Function
+
 function timeAgo(dateString) {
   const date = new Date(dateString);
   const now = new Date();
