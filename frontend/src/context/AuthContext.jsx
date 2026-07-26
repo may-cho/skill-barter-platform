@@ -3,6 +3,16 @@ import { api } from '../lib/api';
 
 const AuthContext = createContext(null);
 
+function normalizeUser(profile) {
+  if (!profile) return null;
+  return {
+    ...profile,
+    is_admin: Boolean(profile?.is_admin),
+    is_staff: Boolean(profile?.is_staff || profile?.is_admin),
+    is_superuser: Boolean(profile?.is_superuser),
+  };
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -10,7 +20,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (api.getToken()) {
       api.getProfile()
-        .then(setUser)
+        .then((profile) => setUser(normalizeUser(profile)))
         .catch(() => api.clearTokens())
         .finally(() => setLoading(false));
     } else {
@@ -19,10 +29,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (username, password) => {
-    await api.login(username, password);
+    const tokenData = await api.login(username, password);
     const profile = await api.getProfile();
-    setUser(profile);
-    return profile;
+    const normalizedUser = normalizeUser(profile);
+    setUser(normalizedUser);
+    return { ...tokenData, ...normalizedUser };
   };
 
   const register = async (data) => {
@@ -37,8 +48,9 @@ export function AuthProvider({ children }) {
 
   const refreshProfile = async () => {
     const profile = await api.getProfile();
-    setUser(profile);
-    return profile;
+    const normalizedUser = normalizeUser(profile);
+    setUser(normalizedUser);
+    return normalizedUser;
   };
 
   return (

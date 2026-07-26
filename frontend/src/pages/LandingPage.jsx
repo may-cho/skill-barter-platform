@@ -7,9 +7,9 @@ export default function LandingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   useEffect(() => {
-
     if (user) {
-      navigate('/profile');
+      const isAdmin = Boolean(user?.is_admin || user?.is_staff || user?.is_superuser);
+      navigate(isAdmin ? '/admin' : '/profile', { replace: true });
     }
   }, [user, navigate]);
 

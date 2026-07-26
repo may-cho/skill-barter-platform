@@ -3,10 +3,9 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from './ui';
 
 const links = [
-    { to: '/discover', label: 'Discover' },
+  { to: '/discover', label: 'Discover' },
   { to: '/proposals', label: 'Proposals' },
   { to: '/calendar', label: 'Calendar' },
-  { to: '/profile', label: 'Profile' },
 ];
 
 const adminOnly = [
