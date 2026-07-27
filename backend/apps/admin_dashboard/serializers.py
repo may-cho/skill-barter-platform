@@ -10,7 +10,7 @@ User = get_user_model()
 class AdminUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'is_admin', 'date_joined')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'is_admin', 'is_active', 'date_joined')
 
 
 class ProposalSerializer(serializers.ModelSerializer):

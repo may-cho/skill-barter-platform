@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions, serializers
 
+from apps.admin_dashboard.models import create_admin_notification
+
 User = get_user_model()
 
 
@@ -25,7 +27,13 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ('username', 'email', 'password', 'first_name', 'last_name', 'bio', 'location', 'timezone')
 
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+        user = User.objects.create_user(**validated_data)
+        create_admin_notification(
+            'Users',
+            'New user registered',
+            f'{user.username} joined the platform.',
+        )
+        return user
 
 
 class UserProfileView(generics.RetrieveUpdateAPIView):

@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from rest_framework import generics, permissions
+from rest_framework import generics
 from apps.proposals.models import Proposal
 from apps.skills.models import Skill
 
@@ -28,7 +28,19 @@ class AdminProposalListView(generics.ListAPIView):
     permission_classes = (IsAdminOrStaff,)
 
 
+class AdminProposalDetailView(generics.RetrieveUpdateAPIView):
+    queryset = Proposal.objects.all().order_by('-updated_at')
+    serializer_class = ProposalSerializer
+    permission_classes = (IsAdminOrStaff,)
+
+
 class AdminSkillListView(generics.ListAPIView):
+    queryset = Skill.objects.all().order_by('-created_at')
+    serializer_class = SkillSerializer
+    permission_classes = (IsAdminOrStaff,)
+
+
+class AdminSkillDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Skill.objects.all().order_by('-created_at')
     serializer_class = SkillSerializer
     permission_classes = (IsAdminOrStaff,)
