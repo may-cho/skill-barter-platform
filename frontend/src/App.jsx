@@ -10,6 +10,9 @@ import ReviewsPage from './pages/ReviewsPage';
 import LandingPage from './pages/LandingPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminLayout from './components/AdminLayout';
+import AdminUsersManage from './pages/AdminUsersManage';
+import AdminSkillsManage from './pages/AdminSkillsManage';
+import AdminProposalsManage from './pages/AdminProposalsManage';
 
 function isAdminUser(user) {
   return Boolean(user?.is_admin || user?.is_staff || user?.is_superuser);
@@ -57,6 +60,9 @@ export default function App() {
               <Route path="proposals" element={<AdminDashboard />} />
               <Route path="skills" element={<AdminDashboard />} />
               <Route path="notifications" element={<AdminDashboard />} />
+              <Route path="users-manage" element={<AdminUsersManage />} />
+              <Route path="skills-manage" element={<AdminSkillsManage />} />
+              <Route path="proposals-manage" element={<AdminProposalsManage />} />
             </Route>
           </Route>
 

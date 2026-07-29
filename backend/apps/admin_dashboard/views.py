@@ -1,5 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import generics
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from apps.proposals.models import Proposal
 from apps.skills.models import Skill
 
@@ -44,6 +46,24 @@ class AdminSkillDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Skill.objects.all().order_by('-created_at')
     serializer_class = SkillSerializer
     permission_classes = (IsAdminOrStaff,)
+
+
+class DashboardStatsView(APIView):
+    permission_classes = (IsAdminOrStaff,)
+
+    def get(self, request):
+        users_count = User.objects.count()
+        skills_count = Skill.objects.count()
+        proposals_count = Proposal.objects.count()
+        pending_proposals = Proposal.objects.filter(status='Pending').count()
+        active_users = User.objects.filter(is_active=True).count()
+        return Response({
+            'users_count': users_count,
+            'skills_count': skills_count,
+            'proposals_count': proposals_count,
+            'pending_proposals': pending_proposals,
+            'active_users': active_users,
+        })
 
 
 class NotificationListCreateView(generics.ListCreateAPIView):

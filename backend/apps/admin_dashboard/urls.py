@@ -4,6 +4,7 @@ from . import views
 app_name = 'admin_dashboard'
 
 urlpatterns = [
+    path('dashboard-stats/', views.DashboardStatsView.as_view(), name='dashboard-stats'),
     path('users/', views.AdminUserListView.as_view(), name='users'),
     path('users/<int:pk>/', views.AdminUserDetailView.as_view(), name='user-detail'),
     path('proposals/', views.AdminProposalListView.as_view(), name='proposals'),
@@ -12,3 +13,4 @@ urlpatterns = [
     path('skills/<int:pk>/', views.AdminSkillDetailView.as_view(), name='skill-detail'),
     path('notifications/', views.NotificationListCreateView.as_view(), name='notifications'),
 ]
+

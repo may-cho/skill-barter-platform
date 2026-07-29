@@ -1,597 +1,320 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 
-const CARD_STYLES = 'bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow';
-const ICON_STYLES = 'text-2xl';
-const PROPOSAL_STATUSES = ['Pending', 'Negotiating', 'Accepted', 'Completed', 'Canceled'];
-const SKILL_TYPES = ['teach', 'learn'];
-const SKILL_LEVELS = ['Beginner', 'Intermediate', 'Expert'];
-const SKILL_CATEGORIES = ['Programming', 'Languages', 'Music', 'Health & Fitness', 'Arts', 'Business', 'Other'];
+const CARDS = [
+  {
+    key: 'users',
+    label: 'Users',
+    subtitle: 'Total registered accounts',
+    countKey: 'users_count',
+    subCountKey: 'active_users',
+    subLabel: 'Active',
+    route: '/admin/users-manage',
+    gradient: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+    glowColor: 'rgba(79,70,229,0.35)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="34" height="34">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="9" cy="7" r="4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    key: 'skills',
+    label: 'Skills',
+    subtitle: 'Published skill listings',
+    countKey: 'skills_count',
+    subCountKey: null,
+    subLabel: null,
+    route: '/admin/skills-manage',
+    gradient: 'linear-gradient(135deg, #0891b2 0%, #6366f1 100%)',
+    glowColor: 'rgba(8,145,178,0.35)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="34" height="34">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    key: 'proposals',
+    label: 'Proposals',
+    subtitle: 'Skill-barter proposals',
+    countKey: 'proposals_count',
+    subCountKey: 'pending_proposals',
+    subLabel: 'Pending',
+    route: '/admin/proposals-manage',
+    gradient: 'linear-gradient(135deg, #db2777 0%, #9333ea 100%)',
+    glowColor: 'rgba(219,39,119,0.35)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="34" height="34">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" />
+        <line x1="16" y1="13" x2="8" y2="13" strokeLinecap="round" strokeLinejoin="round" />
+        <line x1="16" y1="17" x2="8" y2="17" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline points="10 9 9 9 8 9" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+];
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const currentSection = ['users', 'proposals', 'skills', 'notifications'].includes(location.pathname.split('/').filter(Boolean).pop())
-    ? location.pathname.split('/').filter(Boolean).pop()
-    : 'overview';
-
-  const [users, setUsers] = useState([]);
-  const [proposals, setProposals] = useState([]);
-  const [skills, setSkills] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [selectedProposal, setSelectedProposal] = useState(null);
-  const [selectedSkill, setSelectedSkill] = useState(null);
+  const [stats, setStats] = useState(null);
   const [error, setError] = useState(null);
-  const [feedback, setFeedback] = useState('');
-  const [userForm, setUserForm] = useState({ is_admin: false, is_active: true });
-  const [proposalStatus, setProposalStatus] = useState('Pending');
-  const [skillForm, setSkillForm] = useState({ title: '', category: 'Programming', experience_level: 'Beginner', type: 'teach', description: '' });
-
-  async function loadData() {
-    try {
-      const [u, p, s, n] = await Promise.all([
-        api.json('/admin/users/'),
-        api.json('/admin/proposals/'),
-        api.json('/admin/skills/'),
-        api.json('/admin/notifications/'),
-      ]);
-
-      const usersData = u.results || u;
-      const proposalsData = p.results || p;
-      const skillsData = s.results || s;
-      const notificationsData = n.results || n;
-
-      setUsers(usersData);
-      setProposals(proposalsData);
-      setSkills(skillsData);
-      setNotifications(notificationsData);
-      if (!selectedUser && usersData.length) setSelectedUser(usersData[0]);
-      if (!selectedProposal && proposalsData.length) setSelectedProposal(proposalsData[0]);
-      if (!selectedSkill && skillsData.length) setSelectedSkill(skillsData[0]);
-    } catch (err) {
-      console.error('Failed to load admin data', err);
-      setError(err.message || 'Unauthorized or server error');
-    }
-  }
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
+    api
+      .getDashboardStats()
+      .then((data) => {
+        setStats(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message || 'Failed to load dashboard stats');
+        setLoading(false);
+      });
   }, []);
-
-  useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (!token) return;
-
-    const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:8000/ws/admin/notifications/?token=${token}`);
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'notification') {
-          setNotifications((current) => [data.notification, ...current]);
-        }
-      } catch (error) {
-        console.error('Admin notification parse error', error);
-      }
-    };
-
-    return () => ws.close();
-  }, []);
-
-  useEffect(() => {
-    if (selectedUser && !users.some((user) => user.id === selectedUser.id)) {
-      setSelectedUser(users[0] || null);
-    }
-  }, [users, selectedUser]);
-
-  useEffect(() => {
-    if (selectedProposal && !proposals.some((proposal) => proposal.id === selectedProposal.id)) {
-      setSelectedProposal(proposals[0] || null);
-    }
-  }, [proposals, selectedProposal]);
-
-  useEffect(() => {
-    if (selectedSkill && !skills.some((skill) => skill.id === selectedSkill.id)) {
-      setSelectedSkill(skills[0] || null);
-    }
-  }, [skills, selectedSkill]);
-
-  useEffect(() => {
-    if (selectedUser) {
-      setUserForm({
-        is_admin: Boolean(selectedUser.is_admin || selectedUser.is_staff || selectedUser.is_superuser),
-        is_active: selectedUser.is_active !== false,
-      });
-    }
-  }, [selectedUser]);
-
-  useEffect(() => {
-    if (selectedProposal) {
-      setProposalStatus(selectedProposal.status || 'Pending');
-    }
-  }, [selectedProposal]);
-
-  useEffect(() => {
-    if (selectedSkill) {
-      setSkillForm({
-        title: selectedSkill.title || '',
-        category: selectedSkill.category || 'Programming',
-        experience_level: selectedSkill.experience_level || 'Beginner',
-        type: selectedSkill.type || 'teach',
-        description: selectedSkill.description || '',
-      });
-    }
-  }, [selectedSkill]);
-
-  const proposalsByUser = useMemo(() => {
-    const map = {};
-    proposals.forEach((proposal) => {
-      map[proposal.sender] = (map[proposal.sender] || 0) + 1;
-      map[proposal.receiver] = (map[proposal.receiver] || 0) + 1;
-    });
-    return map;
-  }, [proposals]);
-
-  const skillsByUser = useMemo(() => {
-    const map = {};
-    skills.forEach((skill) => {
-      map[skill.user] = (map[skill.user] || 0) + 1;
-    });
-    return map;
-  }, [skills]);
-
-  const selectedUserProposals = useMemo(
-    () => proposals.filter((proposal) => selectedUser && (proposal.sender === selectedUser.id || proposal.receiver === selectedUser.id)),
-    [proposals, selectedUser]
-  );
-
-  const selectedUserSkills = useMemo(
-    () => skills.filter((skill) => selectedUser && skill.user === selectedUser.id),
-    [skills, selectedUser]
-  );
-
-  const goToSection = (section) => {
-    navigate(section === 'overview' ? '/admin' : `/admin/${section}`);
-  };
-
-  const handleUserSave = async () => {
-    if (!selectedUser) return;
-    try {
-      const updated = await api.updateAdminUser(selectedUser.id, {
-        is_admin: userForm.is_admin,
-        is_staff: userForm.is_admin,
-        is_active: userForm.is_active,
-      });
-      setUsers((current) => current.map((user) => (user.id === selectedUser.id ? { ...user, ...updated } : user)));
-      setSelectedUser((current) => (current && current.id === selectedUser.id ? { ...current, ...updated } : current));
-      setFeedback('User role and access were updated.');
-    } catch (err) {
-      setFeedback(err.message || 'Unable to update user.');
-    }
-  };
-
-  const handleProposalSave = async () => {
-    if (!selectedProposal) return;
-    try {
-      const updated = await api.updateAdminProposal(selectedProposal.id, { status: proposalStatus });
-      setProposals((current) => current.map((proposal) => (proposal.id === selectedProposal.id ? { ...proposal, ...updated } : proposal)));
-      setSelectedProposal((current) => (current && current.id === selectedProposal.id ? { ...current, ...updated } : current));
-      setFeedback('Proposal status updated.');
-    } catch (err) {
-      setFeedback(err.message || 'Unable to update proposal.');
-    }
-  };
-
-  const handleSkillSave = async () => {
-    if (!selectedSkill) return;
-    try {
-      const updated = await api.updateAdminSkill(selectedSkill.id, skillForm);
-      setSkills((current) => current.map((skill) => (skill.id === selectedSkill.id ? { ...skill, ...updated } : skill)));
-      setSelectedSkill((current) => (current && current.id === selectedSkill.id ? { ...current, ...updated } : current));
-      setFeedback('Skill details updated.');
-    } catch (err) {
-      setFeedback(err.message || 'Unable to update skill.');
-    }
-  };
-
-  const handleSkillDelete = async () => {
-    if (!selectedSkill) return;
-    if (!window.confirm('Remove this skill from the platform?')) return;
-    try {
-      await api.deleteAdminSkill(selectedSkill.id);
-      const nextSkills = skills.filter((skill) => skill.id !== selectedSkill.id);
-      setSkills(nextSkills);
-      setSelectedSkill(nextSkills[0] || null);
-      setFeedback('Skill removed.');
-    } catch (err) {
-      setFeedback(err.message || 'Unable to delete skill.');
-    }
-  };
-
-  const renderSectionCard = (type, label, count, icon) => (
-    <button
-      type="button"
-      onClick={() => goToSection(type)}
-      className={`${CARD_STYLES} ${currentSection === type ? 'ring-2 ring-indigo-500' : ''} text-left w-full`}
-    >
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="text-sm text-slate-500 uppercase tracking-[0.2em]">{label}</div>
-          <div className="mt-3 text-3xl font-semibold text-slate-900">{count}</div>
-          <div className="mt-1 text-sm text-slate-500">Total {label.toLowerCase()}</div>
-        </div>
-        <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-700">
-          <span className={ICON_STYLES}>{icon}</span>
-        </div>
-      </div>
-    </button>
-  );
 
   return (
-    <div className="p-6 space-y-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-600">Admin Dashboard</p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-900">Site management overview</h1>
-        </div>
-        <div className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
-          {currentSection === 'overview' ? 'Overview' : `${currentSection[0].toUpperCase()}${currentSection.slice(1)}`}
-        </div>
+    <div style={{ minHeight: '100%', padding: '2.5rem 2rem', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        .admin-stat-card {
+          position: relative;
+          border-radius: 20px;
+          padding: 2rem 2rem 1.75rem;
+          cursor: pointer;
+          overflow: hidden;
+          transition: transform 0.22s cubic-bezier(.4,0,.2,1), box-shadow 0.22s cubic-bezier(.4,0,.2,1);
+          color: #fff;
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+          min-height: 210px;
+          outline: none;
+          border: none;
+          text-align: left;
+          user-select: none;
+        }
+        .admin-stat-card:hover {
+          transform: translateY(-6px) scale(1.015);
+        }
+        .admin-stat-card:focus-visible {
+          box-shadow: 0 0 0 3px #fff, 0 0 0 5px #6366f1;
+        }
+        .admin-stat-card::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: rgba(255,255,255,0.06);
+          border-radius: inherit;
+          pointer-events: none;
+        }
+        .card-noise {
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+          pointer-events: none;
+          opacity: 0.5;
+        }
+        .card-orb {
+          position: absolute;
+          width: 180px;
+          height: 180px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.12);
+          right: -40px;
+          bottom: -60px;
+          pointer-events: none;
+        }
+        .card-orb-sm {
+          position: absolute;
+          width: 90px;
+          height: 90px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.08);
+          right: 90px;
+          bottom: 60px;
+          pointer-events: none;
+        }
+        .card-icon-wrap {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 56px;
+          height: 56px;
+          border-radius: 14px;
+          background: rgba(255,255,255,0.18);
+          backdrop-filter: blur(4px);
+          flex-shrink: 0;
+        }
+        .card-arrow {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+          opacity: 0.85;
+          transition: opacity 0.2s, gap 0.2s;
+        }
+        .admin-stat-card:hover .card-arrow {
+          opacity: 1;
+          gap: 10px;
+        }
+        .stat-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 1.5rem;
+        }
+        @media (max-width: 640px) {
+          .stat-grid { grid-template-columns: 1fr; }
+        }
+        .pulse-dot {
+          display: inline-block;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #4ade80;
+          margin-right: 6px;
+          animation: pulse-anim 2s infinite;
+        }
+        @keyframes pulse-anim {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.85); }
+        }
+        .skeleton {
+          background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.4s infinite;
+          border-radius: 8px;
+        }
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
+
+      {/* Header */}
+      <header style={{ marginBottom: '2.5rem' }}>
+        <p style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#6366f1', marginBottom: '0.5rem' }}>
+          Admin Dashboard
+        </p>
+        <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+          Site Management Overview
+        </h1>
+        <p style={{ marginTop: '0.5rem', color: '#64748b', fontSize: '0.95rem' }}>
+          <span className="pulse-dot" />
+          Live platform statistics — click a card to manage
+        </p>
       </header>
 
-      {error && <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">{error}</div>}
-      {feedback && <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-700">{feedback}</div>}
-
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {renderSectionCard('users', 'Users', users.length, '👥')}
-        {renderSectionCard('proposals', 'Proposals', proposals.length, '📝')}
-        {renderSectionCard('skills', 'Skills', skills.length, '⚡')}
-      </section>
-
-      {currentSection === 'overview' && (
-        <section className="grid grid-cols-1 xl:grid-cols-[1.4fr_1fr] gap-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6">
-            <h2 className="text-xl font-semibold text-slate-900">System overview</h2>
-            <p className="mt-2 text-sm text-slate-500">Manage people, proposals, and skills from one place.</p>
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <div className="text-sm text-slate-500">Active users</div>
-                <div className="mt-2 text-2xl font-semibold text-slate-900">{users.length}</div>
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <div className="text-sm text-slate-500">Open proposals</div>
-                <div className="mt-2 text-2xl font-semibold text-slate-900">{proposals.length}</div>
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <div className="text-sm text-slate-500">Published skills</div>
-                <div className="mt-2 text-2xl font-semibold text-slate-900">{skills.length}</div>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-6">
-            <h2 className="text-lg font-semibold text-slate-900">Latest system updates</h2>
-            <div className="mt-4 space-y-3">
-              {notifications.slice(0, 4).map((item) => (
-                <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-sm font-semibold text-slate-900">{item.title}</div>
-                  <div className="mt-1 text-xs text-slate-500">{item.topic}</div>
-                  <div className="mt-2 text-sm text-slate-600">{item.body}</div>
-                </div>
-              ))}
-              {!notifications.length && <div className="text-sm text-slate-500">No notifications yet.</div>}
-            </div>
-          </div>
-        </section>
+      {/* Error */}
+      {error && (
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: '1rem 1.25rem', color: '#b91c1c', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+          ⚠️ {error}
+        </div>
       )}
 
-      <section className="grid grid-cols-1 xl:grid-cols-[1.35fr_0.95fr] gap-6">
-        <div className="bg-white border border-slate-200 rounded-3xl p-6">
-          {currentSection === 'users' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-900">Users</h2>
-                  <p className="mt-1 text-sm text-slate-500">Manage roles and restrict accounts quickly.</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {users.map((user) => (
-                  <button
-                    key={user.id}
-                    type="button"
-                    onClick={() => setSelectedUser(user)}
-                    className={`w-full ${CARD_STYLES} ${selectedUser?.id === user.id ? 'border-indigo-500 bg-indigo-50' : ''} text-left`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-lg font-semibold text-slate-900">{user.username}</div>
-                        <div className="text-sm text-slate-500">{user.email}</div>
-                      </div>
-                      <div className="text-2xl">👤</div>
-                    </div>
-                    <div className="mt-4 grid grid-cols-3 gap-3 text-sm text-slate-600">
-                      <div className="rounded-2xl bg-slate-100 px-3 py-2 text-center">
-                        <div className="font-semibold text-slate-900">{proposalsByUser[user.id] || 0}</div>
-                        <div>Proposals</div>
-                      </div>
-                      <div className="rounded-2xl bg-slate-100 px-3 py-2 text-center">
-                        <div className="font-semibold text-slate-900">{skillsByUser[user.id] || 0}</div>
-                        <div>Skills</div>
-                      </div>
-                      <div className="rounded-2xl bg-slate-100 px-3 py-2 text-center">
-                        <div className="font-semibold text-slate-900">{user.is_admin || user.is_staff ? 'Yes' : 'No'}</div>
-                        <div>Admin</div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+      {/* Stat Cards */}
+      <div className="stat-grid">
+        {CARDS.map((card) => {
+          const count = stats ? stats[card.countKey] : null;
+          const subCount = card.subCountKey && stats ? stats[card.subCountKey] : null;
 
-          {currentSection === 'proposals' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-900">Proposals</h2>
-                  <p className="mt-1 text-sm text-slate-500">Review proposal details and update status.</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {proposals.map((proposal) => (
-                  <button
-                    key={proposal.id}
-                    type="button"
-                    onClick={() => setSelectedProposal(proposal)}
-                    className={`${CARD_STYLES} ${selectedProposal?.id === proposal.id ? 'border-indigo-500 bg-indigo-50' : ''} text-left w-full`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-lg font-semibold text-slate-900">Proposal #{proposal.id}</div>
-                        <div className="text-sm text-slate-500">{proposal.status}</div>
-                      </div>
-                      <div className="text-2xl">📄</div>
-                    </div>
-                    <div className="mt-4 grid grid-cols-3 gap-3 text-sm text-slate-600">
-                      <div className="rounded-2xl bg-slate-100 px-3 py-2 text-center">
-                        <div className="font-semibold text-slate-900">{proposal.offered_skill || '—'}</div>
-                        <div>Offered</div>
-                      </div>
-                      <div className="rounded-2xl bg-slate-100 px-3 py-2 text-center">
-                        <div className="font-semibold text-slate-900">{proposal.requested_skill || '—'}</div>
-                        <div>Requested</div>
-                      </div>
-                      <div className="rounded-2xl bg-slate-100 px-3 py-2 text-center">
-                        <div className="font-semibold text-slate-900">{new Date(proposal.created_at).toLocaleDateString()}</div>
-                        <div>Created</div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          return (
+            <button
+              id={`admin-card-${card.key}`}
+              key={card.key}
+              className="admin-stat-card"
+              style={{
+                background: card.gradient,
+                boxShadow: `0 8px 32px ${card.glowColor}, 0 2px 8px rgba(0,0,0,0.1)`,
+              }}
+              onClick={() => navigate(card.route)}
+              aria-label={`Manage ${card.label}`}
+            >
+              <div className="card-noise" />
+              <div className="card-orb" />
+              <div className="card-orb-sm" />
 
-          {currentSection === 'skills' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              {/* Top row: icon + label */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative', zIndex: 1 }}>
+                <div className="card-icon-wrap">{card.icon}</div>
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900">Skills</h2>
-                  <p className="mt-1 text-sm text-slate-500">Review skill listings and manage their details.</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {skills.map((skill) => (
-                  <button
-                    key={skill.id}
-                    type="button"
-                    onClick={() => setSelectedSkill(skill)}
-                    className={`${CARD_STYLES} ${selectedSkill?.id === skill.id ? 'border-indigo-500 bg-indigo-50' : ''} text-left w-full`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-lg font-semibold text-slate-900">{skill.title}</div>
-                        <div className="text-sm text-slate-500">{skill.category}</div>
-                      </div>
-                      <div className="text-2xl">🏷️</div>
-                    </div>
-                    <div className="mt-4 grid grid-cols-3 gap-3 text-sm text-slate-600">
-                      <div className="rounded-2xl bg-slate-100 px-3 py-2 text-center">
-                        <div className="font-semibold text-slate-900">{skill.experience_level}</div>
-                        <div>Level</div>
-                      </div>
-                      <div className="rounded-2xl bg-slate-100 px-3 py-2 text-center">
-                        <div className="font-semibold text-slate-900">{skill.type}</div>
-                        <div>Type</div>
-                      </div>
-                      <div className="rounded-2xl bg-slate-100 px-3 py-2 text-center">
-                        <div className="font-semibold text-slate-900">{new Date(skill.created_at).toLocaleDateString()}</div>
-                        <div>Created</div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {currentSection === 'notifications' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-900">Notifications</h2>
-                  <p className="mt-1 text-sm text-slate-500">Latest platform updates and announcements.</p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                {notifications.map((notification) => (
-                  <div key={notification.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="text-sm font-semibold text-slate-900">{notification.title}</div>
-                    <div className="mt-1 text-xs text-slate-500">{notification.topic}</div>
-                    <div className="mt-2 text-sm text-slate-600">{notification.body}</div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', opacity: 0.8 }}>
+                    {card.label}
                   </div>
-                ))}
+                  <div style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: 2 }}>{card.subtitle}</div>
+                </div>
               </div>
+
+              {/* Count */}
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                {loading ? (
+                  <div className="skeleton" style={{ height: 48, width: 80 }} />
+                ) : (
+                  <div style={{ fontSize: '3.25rem', fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em' }}>
+                    {count ?? '—'}
+                  </div>
+                )}
+                {subCount !== null && !loading && (
+                  <div style={{ marginTop: '0.4rem', fontSize: '0.82rem', opacity: 0.8 }}>
+                    <span style={{ fontWeight: 700 }}>{subCount}</span> {card.subLabel}
+                  </div>
+                )}
+              </div>
+
+              {/* CTA */}
+              <div style={{ position: 'relative', zIndex: 1, marginTop: 'auto' }}>
+                <span className="card-arrow">
+                  Manage {card.label}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14">
+                    <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Quick info strip */}
+      {stats && !loading && (
+        <div style={{
+          marginTop: '2.5rem',
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: 16,
+          padding: '1.25rem 1.5rem',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '1.5rem',
+          alignItems: 'center',
+        }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#94a3b8', flexShrink: 0 }}>
+            At a glance
+          </div>
+          {[
+            { label: 'Total Users', value: stats.users_count },
+            { label: 'Active Users', value: stats.active_users },
+            { label: 'Total Skills', value: stats.skills_count },
+            { label: 'Total Proposals', value: stats.proposals_count },
+            { label: 'Pending Proposals', value: stats.pending_proposals },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ textAlign: 'center', minWidth: 90 }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a' }}>{value}</div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>{label}</div>
             </div>
-          )}
+          ))}
         </div>
-
-        <aside className="space-y-6">
-          {currentSection === 'users' && selectedUser ? (
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
-              <div className="mb-4">
-                <p className="text-sm uppercase tracking-[0.25em] text-slate-500">Selected user</p>
-                <h3 className="text-2xl font-semibold text-slate-900">{selectedUser.username}</h3>
-              </div>
-              <dl className="space-y-3 text-sm text-slate-600">
-                <div className="rounded-2xl bg-white p-3">
-                  <dt className="text-slate-500">Email</dt>
-                  <dd className="mt-1 font-semibold text-slate-900">{selectedUser.email}</dd>
-                </div>
-                <div className="rounded-2xl bg-white p-3">
-                  <dt className="text-slate-500">Joined</dt>
-                  <dd className="mt-1 font-semibold text-slate-900">{new Date(selectedUser.date_joined).toLocaleDateString()}</dd>
-                </div>
-                <div className="rounded-2xl bg-white p-3">
-                  <dt className="text-slate-500">Active proposals</dt>
-                  <dd className="mt-1 font-semibold text-slate-900">{selectedUserProposals.length}</dd>
-                </div>
-                <div className="rounded-2xl bg-white p-3">
-                  <dt className="text-slate-500">Skills</dt>
-                  <dd className="mt-1 font-semibold text-slate-900">{selectedUserSkills.length}</dd>
-                </div>
-              </dl>
-
-              <div className="mt-6 space-y-3 rounded-2xl bg-white p-4 border border-slate-200">
-                <label className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-700">Admin access</span>
-                  <input
-                    type="checkbox"
-                    checked={userForm.is_admin}
-                    onChange={(event) => setUserForm({ ...userForm, is_admin: event.target.checked })}
-                  />
-                </label>
-                <label className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-700">Restrict account</span>
-                  <input
-                    type="checkbox"
-                    checked={!userForm.is_active}
-                    onChange={(event) => setUserForm({ ...userForm, is_active: !event.target.checked })}
-                  />
-                </label>
-                <button type="button" onClick={handleUserSave} className="w-full rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Save user management</button>
-              </div>
-            </div>
-          ) : currentSection === 'users' ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Select a user to manage access.</div>
-          ) : null}
-
-          {currentSection === 'proposals' && selectedProposal ? (
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
-              <div className="mb-4">
-                <p className="text-sm uppercase tracking-[0.25em] text-slate-500">Selected proposal</p>
-                <h3 className="text-2xl font-semibold text-slate-900">Proposal #{selectedProposal.id}</h3>
-              </div>
-              <div className="space-y-3 text-sm text-slate-600">
-                <div className="rounded-2xl bg-white p-3">
-                  <div className="text-slate-500">Sender</div>
-                  <div className="mt-1 font-semibold text-slate-900">{selectedProposal.sender}</div>
-                </div>
-                <div className="rounded-2xl bg-white p-3">
-                  <div className="text-slate-500">Receiver</div>
-                  <div className="mt-1 font-semibold text-slate-900">{selectedProposal.receiver}</div>
-                </div>
-                <div className="rounded-2xl bg-white p-3">
-                  <div className="text-slate-500">Offered skill</div>
-                  <div className="mt-1 font-semibold text-slate-900">{selectedProposal.offered_skill || '—'}</div>
-                </div>
-                <div className="rounded-2xl bg-white p-3">
-                  <div className="text-slate-500">Requested skill</div>
-                  <div className="mt-1 font-semibold text-slate-900">{selectedProposal.requested_skill || '—'}</div>
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-3 rounded-2xl bg-white p-4 border border-slate-200">
-                <label className="block text-sm font-medium text-slate-700">
-                  Proposal status
-                  <select value={proposalStatus} onChange={(event) => setProposalStatus(event.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm">
-                    {PROPOSAL_STATUSES.map((status) => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
-                  </select>
-                </label>
-                <button type="button" onClick={handleProposalSave} className="w-full rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Save proposal status</button>
-              </div>
-            </div>
-          ) : currentSection === 'proposals' ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Select a proposal to manage its status.</div>
-          ) : null}
-
-          {currentSection === 'skills' && selectedSkill ? (
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
-              <div className="mb-4">
-                <p className="text-sm uppercase tracking-[0.25em] text-slate-500">Selected skill</p>
-                <h3 className="text-2xl font-semibold text-slate-900">{selectedSkill.title}</h3>
-              </div>
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-slate-700">
-                  Title
-                  <input value={skillForm.title} onChange={(event) => setSkillForm({ ...skillForm, title: event.target.value })} className="mt-2 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm" />
-                </label>
-                <label className="block text-sm font-medium text-slate-700">
-                  Category
-                  <select value={skillForm.category} onChange={(event) => setSkillForm({ ...skillForm, category: event.target.value })} className="mt-2 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm">
-                    {SKILL_CATEGORIES.map((category) => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-sm font-medium text-slate-700">
-                  Type
-                  <select value={skillForm.type} onChange={(event) => setSkillForm({ ...skillForm, type: event.target.value })} className="mt-2 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm">
-                    {SKILL_TYPES.map((type) => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-sm font-medium text-slate-700">
-                  Experience level
-                  <select value={skillForm.experience_level} onChange={(event) => setSkillForm({ ...skillForm, experience_level: event.target.value })} className="mt-2 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm">
-                    {SKILL_LEVELS.map((level) => (
-                      <option key={level} value={level}>{level}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-sm font-medium text-slate-700">
-                  Description
-                  <textarea value={skillForm.description} onChange={(event) => setSkillForm({ ...skillForm, description: event.target.value })} rows="4" className="mt-2 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm" />
-                </label>
-                <div className="flex gap-3">
-                  <button type="button" onClick={handleSkillSave} className="flex-1 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Save skill</button>
-                  <button type="button" onClick={handleSkillDelete} className="flex-1 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Remove skill</button>
-                </div>
-              </div>
-            </div>
-          ) : currentSection === 'skills' ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Select a skill to edit its details.</div>
-          ) : null}
-
-          {currentSection === 'overview' && (
-            <div className="rounded-3xl border border-slate-200 bg-white p-6">
-              <h2 className="text-lg font-semibold text-slate-900">Notifications</h2>
-              <div className="mt-4 space-y-3">
-                {notifications.slice(0, 4).map((item) => (
-                  <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="text-sm font-semibold text-slate-900">{item.title}</div>
-                    <div className="mt-2 text-sm text-slate-600">{item.body}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </aside>
-      </section>
+      )}
     </div>
   );
 }

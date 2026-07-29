@@ -164,6 +164,11 @@ class ApiClient {
     return this.request(`/admin/skills/${id}/`, { method: 'DELETE' });
   }
 
+  getDashboardStats() {
+    return this.json('/admin/dashboard-stats/');
+  }
+
+
   getCalendarEvents() {
     return this.json('/calendar-events/')
   }
