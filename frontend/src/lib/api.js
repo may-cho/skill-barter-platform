@@ -154,6 +154,28 @@ class ApiClient {
   getReviews() {
     return this.json('/reviews/');
   }
+
+  updateAdminUser(id, data) {
+    return this.json(`/admin/users/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
+  updateAdminProposal(id, data) {
+    return this.json(`/admin/proposals/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
+  updateAdminSkill(id, data) {
+    return this.json(`/admin/skills/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
+  deleteAdminSkill(id) {
+    return this.request(`/admin/skills/${id}/`, { method: 'DELETE' });
+  }
+
+  getDashboardStats() {
+    return this.json('/admin/dashboard-stats/');
+  }
+
+
   getCalendarEvents() {
     return this.json('/calendar-events/')
   }

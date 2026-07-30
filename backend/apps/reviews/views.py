@@ -1,4 +1,5 @@
 from rest_framework import permissions, serializers, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.proposals.models import Proposal, ProposalStatus
@@ -16,34 +17,41 @@ class ReviewSerializer(serializers.ModelSerializer):
             'id', 'proposal', 'reviewer', 'reviewer_name',
             'reviewee', 'reviewee_name', 'rating', 'comment', 'created_at',
         )
-        read_only_fields = ('id', 'reviewer', 'reviewer_name', 'reviewee_name', 'created_at')
+        read_only_fields = ('id', 'reviewer', 'reviewer_name', 'reviewee_name', 'created_at', 'reviewee')
 
     def validate(self, data):
         request = self.context['request']
-        proposal = data.get('proposal') or self.instance.proposal if self.instance else None
+        proposal = data.get('proposal')
+
+        if not proposal:
+            print("DEBUG ERROR: Proposal ID is missing.")
+            raise serializers.ValidationError({'proposal': 'A valid proposal ID is required.'})
 
         if proposal.status != ProposalStatus.COMPLETED:
+            print(f"DEBUG ERROR: Proposal status is {proposal.status}, expected COMPLETED.")
             raise serializers.ValidationError(
                 'Reviews can only be submitted after a proposal is Completed'
             )
 
-        if request.user.id not in (proposal.sender_id, proposal.receiver_id):
-            raise serializers.ValidationError('You are not a participant in this proposal')
-
-        reviewee = data.get('reviewee')
-        if reviewee.id == request.user.id:
-            raise serializers.ValidationError('You cannot review yourself')
-
-        if reviewee.id not in (proposal.sender_id, proposal.receiver_id):
-            raise serializers.ValidationError('Reviewee must be the other participant')
-
         if Review.objects.filter(proposal=proposal, reviewer=request.user).exists():
+            print("DEBUG ERROR: Review already exists for this proposal.")
             raise serializers.ValidationError('You have already reviewed this proposal')
 
         return data
 
     def create(self, validated_data):
-        validated_data['reviewer'] = self.context['request'].user
+        request = self.context['request']
+        proposal = validated_data.get('proposal')
+        reviewer = request.user
+
+        if proposal.sender_id == reviewer.id:
+            reviewee = proposal.receiver
+        else:
+            reviewee = proposal.sender
+
+        validated_data['reviewer'] = reviewer
+        validated_data['reviewee'] = reviewee
+
         return super().create(validated_data)
 
 
@@ -54,7 +62,34 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return Review.objects.filter(reviewee=user) | Review.objects.filter(reviewer=user)
+        target_user_id = self.request.query_params.get('user_id')
+        if target_user_id:
+            return Review.objects.filter(reviewee_id=target_user_id)
+        return Review.objects.filter(reviewee=user)
+
+    @action(detail=False, methods=['get'], url_path='received')
+    def received_reviews(self, request):
+        """Endpoint: /api/reviews/received/"""
+        target_user_id = request.query_params.get('user_id')
+        if target_user_id:
+            reviews = Review.objects.filter(reviewee_id=target_user_id)
+        else:
+            reviews = Review.objects.filter(reviewee=request.user)
+
+        serializer = self.get_serializer(reviews, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='given')
+    def given_reviews(self, request):
+        """Endpoint: /api/reviews/given/"""
+        target_user_id = request.query_params.get('user_id')
+        if target_user_id:
+            reviews = Review.objects.filter(reviewer_id=target_user_id)
+        else:
+            reviews = Review.objects.filter(reviewer=request.user)
+
+        serializer = self.get_serializer(reviews, many=True)
+        return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

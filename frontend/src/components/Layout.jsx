@@ -3,10 +3,14 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from './ui';
 
 const links = [
-    { to: '/discover', label: 'Discover' },
+  { to: '/discover', label: 'Discover' },
   { to: '/proposals', label: 'Proposals' },
   { to: '/calendar', label: 'Calendar' },
-  { to: '/profile', label: 'Profile' },
+  { to: '/reviews', label: 'Review' },
+];
+
+const adminOnly = [
+  { to: '/admin', label: 'Admin' },
 ];
 
 export function Layout() {
@@ -21,7 +25,7 @@ export function Layout() {
               SkillBarter
             </NavLink>
             <nav className="hidden sm:flex gap-1">
-              {links.map(({ to, label }) => (
+              {!(user?.is_admin || user?.is_staff || user?.is_superuser) && links.map(({ to, label }) => (
                 <NavLink
                   key={to}
                   to={to}
@@ -35,16 +39,26 @@ export function Layout() {
                   {label}
                 </NavLink>
               ))}
+              {(user?.is_admin || user?.is_staff || user?.is_superuser) && adminOnly.map(({ to, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) =>
+                    `px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'
+                    }`
+                  }
+                >
+                  {label}
+                </NavLink>
+              ))}
             </nav>
           </div>
 
-
-<div className="flex items-center gap-3">
-  <span className="text-sm text-slate-600 hidden sm:inline">{user?.username}</span>
-
-
-  <Button variant="ghost" onClick={logout}>Sign out</Button>
-</div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-600 hidden sm:inline">{user?.username}</span>
+            <Button variant="ghost" onClick={logout}>Sign out</Button>
+          </div>
         </div>
       </header>
       <main className="mx-auto px-4 py-8">

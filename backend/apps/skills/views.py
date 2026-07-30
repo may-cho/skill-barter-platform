@@ -4,6 +4,7 @@ from rest_framework import permissions, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.admin_dashboard.models import create_admin_notification
 from .models import Skill, SkillType
 
 User = get_user_model()
@@ -51,7 +52,12 @@ class SkillViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        skill = serializer.save(user=self.request.user)
+        create_admin_notification(
+            'Skills',
+            'New skill added',
+            f'{self.request.user.username} added a new skill: {skill.title}.',
+        )
 
     @action(detail=False, methods=['get'])
     def mine(self, request):

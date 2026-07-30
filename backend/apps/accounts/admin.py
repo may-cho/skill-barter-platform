@@ -7,6 +7,6 @@ from .models import User
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     fieldsets = BaseUserAdmin.fieldsets + (
-        ('Profile', {'fields': ('bio', 'location', 'timezone')}),
+        ('Profile', {'fields': ('bio', 'location', 'timezone', 'is_admin')}),
     )
-    list_display = ('username', 'email', 'timezone', 'location', 'is_staff')
+    list_display = ('username', 'email', 'timezone', 'location', 'is_staff', 'is_admin')

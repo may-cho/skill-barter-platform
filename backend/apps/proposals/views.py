@@ -6,6 +6,7 @@ from rest_framework.decorators import action,api_view,permission_classes
 from rest_framework.response import Response
 
 
+from apps.admin_dashboard.models import create_admin_notification
 from apps.skills.models import Skill, SkillType
 
 from .models import CounterOffer, Proposal, ProposalStatus
@@ -86,8 +87,16 @@ class ProposalCreateSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        validated_data['sender'] = self.context['request'].user
-        return super().create(validated_data)
+        request_user = self.context['request'].user
+        validated_data['sender'] = request_user
+        proposal = super().create(validated_data)
+        receiver = proposal.receiver
+        create_admin_notification(
+            'Proposals',
+            'New proposal created',
+            f'{request_user.username} sent a new proposal to {receiver.username}.',
+        )
+        return proposal
 
 
 class CounterOfferCreateSerializer(serializers.Serializer):
@@ -124,6 +133,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
             proposal.transition_to(ProposalStatus.ACCEPTED, request.user)
         except DjangoValidationError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        create_admin_notification(
+            'Proposals',
+            'Proposal accepted',
+            f'Proposal #{proposal.id} was accepted.',
+        )
         return Response(ProposalSerializer(proposal).data)
 
     @action(detail=True, methods=['post'])
@@ -133,6 +147,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
             proposal.transition_to(ProposalStatus.CANCELED, request.user)
         except DjangoValidationError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        create_admin_notification(
+            'Proposals',
+            'Proposal rejected',
+            f'Proposal #{proposal.id} was rejected.',
+        )
         return Response(ProposalSerializer(proposal).data)
 
     @action(detail=True, methods=['post'])
@@ -169,6 +188,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
             proposal.transition_to(ProposalStatus.COMPLETED, request.user)
         except DjangoValidationError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        create_admin_notification(
+            'Proposals',
+            'Proposal completed',
+            f'Proposal #{proposal.id} was completed.',
+        )
         return Response(ProposalSerializer(proposal).data)
 
     @action(detail=True, methods=['post'])
