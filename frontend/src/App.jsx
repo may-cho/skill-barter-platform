@@ -11,9 +11,7 @@ import ProfileReview from './pages/ProfileReview';
 import LandingPage from './pages/LandingPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminLayout from './components/AdminLayout';
-import AdminUsersManage from './pages/AdminUsersManage';
-import AdminSkillsManage from './pages/AdminSkillsManage';
-import AdminProposalsManage from './pages/AdminProposalsManage';
+import UserProfilePage from './pages/UserProfilePage';
 
 function isAdminUser(user) {
   return Boolean(user?.is_admin || user?.is_staff || user?.is_superuser);
@@ -53,17 +51,20 @@ export default function App() {
             <Route path="/proposals" element={<ProposalsPage />} />
             <Route path="/proposals/new" element={<NewProposalPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/users/:id" element={<UserProfilePage />} />
+
+
             <Route path="/reviews" element={<ProfileReview />} />
+
+
             <Route path="/reviews/new" element={<ReviewsPage />} />
+
             <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
               <Route index element={<AdminDashboard />} />
               <Route path="users" element={<AdminDashboard />} />
               <Route path="proposals" element={<AdminDashboard />} />
               <Route path="skills" element={<AdminDashboard />} />
               <Route path="notifications" element={<AdminDashboard />} />
-              <Route path="users-manage" element={<AdminUsersManage />} />
-              <Route path="skills-manage" element={<AdminSkillsManage />} />
-              <Route path="proposals-manage" element={<AdminProposalsManage />} />
             </Route>
           </Route>
 
