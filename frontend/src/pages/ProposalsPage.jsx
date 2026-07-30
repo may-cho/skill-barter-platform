@@ -83,7 +83,7 @@ export default function ProposalsPage() {
                     <Button onClick={() => act(p.id, 'complete')}>Mark Complete</Button>
                   )}
                   {!['Completed', 'Canceled'].includes(p.status) && (
-                    <Button variant="ghost" onClick={() => act(p.id, 'cancel')}>Cancel</Button>
+                    <Button variant="ghost" onClick={() => act(p.id, 'cancel')}></Button>
                   )}
                 {p.status === 'Completed' && (
              <Link to={`/reviews/new?proposal=${p.id}`}>

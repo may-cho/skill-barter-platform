@@ -7,6 +7,7 @@ const links = [
   { to: '/proposals', label: 'Proposals' },
   { to: '/calendar', label: 'Calendar' },
   { to: '/reviews', label: 'Review' },
+  { to: '/profile', label: 'Profile' },
 ];
 
 const adminOnly = [
