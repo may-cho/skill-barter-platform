@@ -33,9 +33,6 @@ export default function ProposalsPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Barter Proposals</h1>
-        <Link to="/proposals/new">
-          <Button>New Proposal</Button>
-        </Link>
       </div>
 
       {proposals.length === 0 ? (
@@ -61,9 +58,11 @@ export default function ProposalsPage() {
                   </p>
                 </div>
                 <div className="flex gap-2 flex-wrap justify-end">
+                  {p.status === 'Accepted' && (
                   <Button variant="ghost" onClick={() => setActiveChat(activeChat === p.id ? null : p.id)}>
                     Chat
                   </Button>
+                  )}
                   {p.status === 'Accepted' && (
                     <Link to={`/calendar?proposal=${p.id}`}>
                       <Button variant="secondary">Schedule</Button>

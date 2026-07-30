@@ -113,6 +113,13 @@ class ApiClient {
     return this.request(`/skills/${id}/`, { method: 'DELETE' });
   }
 
+  updateSkill(id, data) {
+  return this.json(`/skills/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  }
+
   getProposals() {
     return this.json('/proposals/mine/');
   }
@@ -183,5 +190,5 @@ export const LEVELS = ['Beginner', 'Intermediate', 'Expert'];
 export const TIMEZONES = [
   'UTC', 'America/New_York', 'America/Chicago', 'America/Denver',
   'America/Los_Angeles', 'Europe/London', 'Europe/Paris', 'Asia/Tokyo',
-  'Asia/Kolkata', 'Australia/Sydney',
+  'Asia/Kolkata', 'Australia/Sydney', "Asia/Yangon",
 ];
