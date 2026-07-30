@@ -86,11 +86,11 @@ export default function ProposalsPage() {
                   {!['Completed', 'Canceled'].includes(p.status) && (
                     <Button variant="ghost" onClick={() => act(p.id, 'cancel')}>Cancel</Button>
                   )}
-                  {p.status === 'Completed' && (
-                    <Link to={`/reviews?proposal=${p.id}`}>
-                      <Button variant="secondary">Leave Review</Button>
-                    </Link>
-                  )}
+                {p.status === 'Completed' && (
+             <Link to={`/reviews/new?proposal=${p.id}`}>
+              <Button variant="secondary">Leave Review</Button>
+            </Link>
+              )}
                 </div>
               </div>
 

@@ -7,6 +7,7 @@ import ProfilePage from './pages/ProfilePage';
 import ProposalsPage, { NewProposalPage } from './pages/ProposalsPage';
 import CalendarPage from './pages/CalendarPage';
 import ReviewsPage from './pages/ReviewsPage';
+import ProfileReview from './pages/ProfileReview';
 import LandingPage from './pages/LandingPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminLayout from './components/AdminLayout';
@@ -40,7 +41,6 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
-
           <Route
             element={
               <ProtectedRoute>
@@ -53,7 +53,8 @@ export default function App() {
             <Route path="/proposals" element={<ProposalsPage />} />
             <Route path="/proposals/new" element={<NewProposalPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/reviews" element={<ReviewsPage />} />
+            <Route path="/reviews" element={<ProfileReview />} />
+            <Route path="/reviews/new" element={<ReviewsPage />} />
             <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
               <Route index element={<AdminDashboard />} />
               <Route path="users" element={<AdminDashboard />} />

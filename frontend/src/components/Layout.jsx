@@ -6,6 +6,7 @@ const links = [
   { to: '/discover', label: 'Discover' },
   { to: '/proposals', label: 'Proposals' },
   { to: '/calendar', label: 'Calendar' },
+  { to: '/reviews', label: 'Review' },
 ];
 
 const adminOnly = [
@@ -54,13 +55,10 @@ export function Layout() {
             </nav>
           </div>
 
-
-<div className="flex items-center gap-3">
-  <span className="text-sm text-slate-600 hidden sm:inline">{user?.username}</span>
-
-
-  <Button variant="ghost" onClick={logout}>Sign out</Button>
-</div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-600 hidden sm:inline">{user?.username}</span>
+            <Button variant="ghost" onClick={logout}>Sign out</Button>
+          </div>
         </div>
       </header>
       <main className="mx-auto px-4 py-8">
