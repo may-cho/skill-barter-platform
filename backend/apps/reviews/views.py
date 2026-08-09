@@ -2,6 +2,7 @@ from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.admin_dashboard.models import create_user_notification, UserNotificationType
 from apps.proposals.models import Proposal, ProposalStatus
 
 from .models import Review
@@ -52,7 +53,17 @@ class ReviewSerializer(serializers.ModelSerializer):
         validated_data['reviewer'] = reviewer
         validated_data['reviewee'] = reviewee
 
-        return super().create(validated_data)
+        review = super().create(validated_data)
+
+        # Notify the reviewee in real time
+        create_user_notification(
+            recipient=reviewee,
+            notif_type=UserNotificationType.REVIEW_RECEIVED,
+            title='New review received ⭐',
+            body=f'{reviewer.username} left you a {review.rating}-star review.',
+        )
+
+        return review
 
 
 class ReviewViewSet(viewsets.ModelViewSet):

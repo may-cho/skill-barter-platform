@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from apps.proposals.models import Proposal
 from apps.skills.models import Skill
-from .models import Notification
+from .models import Notification, UserNotification
 
 User = get_user_model()
 
@@ -29,3 +29,10 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ('id', 'topic', 'title', 'body', 'created_at')
+
+
+class UserNotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserNotification
+        fields = ('id', 'type', 'title', 'body', 'is_read', 'created_at')
+        read_only_fields = ('id', 'type', 'title', 'body', 'created_at')

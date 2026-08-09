@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { Layout, ProtectedRoute } from './components/Layout';
+import { NotificationProvider } from './context/NotificationContext';
+import { Layout, LoadingFallback, ProtectedRoute } from './components/Layout';
 import LoginPage, { RegisterPage } from './pages/AuthPages';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
@@ -22,20 +23,21 @@ function isAdminUser(user) {
 
 function AdminRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <LoadingFallback message="Loading your dashboard..." />;
   return isAdminUser(user) ? children : <Navigate to="/profile" replace />;
 }
 
 function ProfileRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <LoadingFallback message="Loading your profile..." />;
   return isAdminUser(user) ? <Navigate to="/admin" replace /> : children;
 }
 
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <NotificationProvider>
+        <BrowserRouter>
         <Routes>
 
           <Route path="/" element={<LandingPage />} />
@@ -72,7 +74,8 @@ export default function App() {
           <Route path="*" element={<Navigate to="/discover" replace />} />
 
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

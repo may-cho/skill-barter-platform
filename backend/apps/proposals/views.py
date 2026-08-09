@@ -6,7 +6,8 @@ from rest_framework.decorators import action,api_view,permission_classes
 from rest_framework.response import Response
 
 
-from apps.admin_dashboard.models import create_admin_notification
+from apps.admin_dashboard.models import create_admin_notification, create_user_notification
+from apps.admin_dashboard.models import UserNotificationType
 from apps.skills.models import Skill, SkillType
 
 from .models import CounterOffer, Proposal, ProposalStatus
@@ -96,6 +97,13 @@ class ProposalCreateSerializer(serializers.ModelSerializer):
             'New proposal created',
             f'{request_user.username} sent a new proposal to {receiver.username}.',
         )
+        # Notify receiver of the new proposal
+        create_user_notification(
+            recipient=receiver,
+            notif_type=UserNotificationType.PROPOSAL_RECEIVED,
+            title='New proposal received',
+            body=f'{request_user.username} sent you a skill-barter proposal.',
+        )
         return proposal
 
 
@@ -138,6 +146,14 @@ class ProposalViewSet(viewsets.ModelViewSet):
             'Proposal accepted',
             f'Proposal #{proposal.id} was accepted.',
         )
+        # Notify the OTHER party
+        other = proposal.receiver if request.user == proposal.sender else proposal.sender
+        create_user_notification(
+            recipient=other,
+            notif_type=UserNotificationType.PROPOSAL_ACCEPTED,
+            title='Proposal accepted ✔',
+            body=f'{request.user.username} accepted your proposal.',
+        )
         return Response(ProposalSerializer(proposal).data)
 
     @action(detail=True, methods=['post'])
@@ -151,6 +167,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
             'Proposals',
             'Proposal rejected',
             f'Proposal #{proposal.id} was rejected.',
+        )
+        other = proposal.receiver if request.user == proposal.sender else proposal.sender
+        create_user_notification(
+            recipient=other,
+            notif_type=UserNotificationType.PROPOSAL_CANCELLED,
+            title='Proposal cancelled',
+            body=f'{request.user.username} rejected the proposal.',
         )
         return Response(ProposalSerializer(proposal).data)
 
@@ -175,6 +198,15 @@ class ProposalViewSet(viewsets.ModelViewSet):
         proposal.requested_hours = ser.validated_data['requested_hours']
         proposal.status = ProposalStatus.NEGOTIATING
         proposal.save(update_fields=['offered_hours', 'requested_hours', 'status', 'updated_at'])
+
+        # Notify the other party about the counter-offer
+        other = proposal.receiver if request.user == proposal.sender else proposal.sender
+        create_user_notification(
+            recipient=other,
+            notif_type=UserNotificationType.COUNTER_OFFER,
+            title='Counter-offer received',
+            body=f'{request.user.username} made a counter-offer on proposal #{proposal.id}.',
+        )
 
         return Response({
             'proposal': ProposalSerializer(proposal).data,
@@ -202,6 +234,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
             proposal.transition_to(ProposalStatus.CANCELED, request.user)
         except DjangoValidationError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        other = proposal.receiver if request.user == proposal.sender else proposal.sender
+        create_user_notification(
+            recipient=other,
+            notif_type=UserNotificationType.PROPOSAL_CANCELLED,
+            title='Proposal cancelled',
+            body=f'{request.user.username} cancelled the proposal.',
+        )
         return Response(ProposalSerializer(proposal).data)
 
 

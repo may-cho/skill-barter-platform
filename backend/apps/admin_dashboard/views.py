@@ -1,16 +1,21 @@
 from django.contrib.auth import get_user_model
-from rest_framework import generics
+from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from apps.proposals.models import Proposal
 from apps.skills.models import Skill
 
-from .serializers import AdminUserSerializer, ProposalSerializer, SkillSerializer, NotificationSerializer
-from .models import Notification
+from .serializers import (
+    AdminUserSerializer, ProposalSerializer, SkillSerializer,
+    NotificationSerializer, UserNotificationSerializer,
+)
+from .models import Notification, UserNotification
 from .permissions import IsAdminOrStaff
 
 User = get_user_model()
 
+
+# ─────────────────────────── Admin Views ───────────────────────────────────
 
 class AdminUserListView(generics.ListAPIView):
     queryset = User.objects.all().order_by('-date_joined')
@@ -73,13 +78,11 @@ class NotificationListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         notif = serializer.save()
-        # Broadcast to channel layer
         try:
             from channels.layers import get_channel_layer
             from asgiref.sync import async_to_sync
             layer = get_channel_layer()
-            group = f'admin_notifications'
-            async_to_sync(layer.group_send)(group, {
+            async_to_sync(layer.group_send)('admin_notifications', {
                 'type': 'admin.notification',
                 'notification': {
                     'id': notif.id,
@@ -91,3 +94,35 @@ class NotificationListCreateView(generics.ListCreateAPIView):
             })
         except Exception:
             pass
+
+
+# ─────────────────────────── User Notification Views ───────────────────────
+
+class UserNotificationListView(generics.ListAPIView):
+    serializer_class = UserNotificationSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        return UserNotification.objects.filter(
+            recipient=self.request.user
+        ).order_by('-created_at')[:100]
+
+
+class UserNotificationMarkReadView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        updated = UserNotification.objects.filter(
+            recipient=request.user, is_read=False
+        ).update(is_read=True)
+        return Response({'marked_read': updated})
+
+
+class UserNotificationUnreadCountView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        count = UserNotification.objects.filter(
+            recipient=request.user, is_read=False
+        ).count()
+        return Response({'unread_count': count})

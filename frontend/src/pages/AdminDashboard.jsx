@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 const CARDS = [
   {
@@ -59,6 +60,212 @@ const CARDS = [
     ),
   },
 ];
+
+const TOPIC_STYLES = {
+  Users: { bg: 'rgba(99,102,241,0.12)', text: '#6366f1', dot: '#6366f1', icon: '👤' },
+  Proposals: { bg: 'rgba(219,39,119,0.12)', text: '#db2777', dot: '#db2777', icon: '📋' },
+  Skills: { bg: 'rgba(8,145,178,0.12)', text: '#0891b2', dot: '#0891b2', icon: '⭐' },
+};
+
+function timeAgo(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+function AdminNotificationsPanel() {
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState([]);
+  const [wsStatus, setWsStatus] = useState('connecting');
+  const wsRef = useRef(null);
+
+  useEffect(() => {
+    // Fetch initial notifications from REST
+    api.getAdminNotifications()
+      .then((data) => {
+        // API uses DRF pagination by default; accept either an array or paginated { results: [] }
+        const list = Array.isArray(data) ? data : (data && data.results) ? data.results : [];
+        setNotifications(list);
+      })
+      .catch(() => { });
+
+    // Open WebSocket for real-time
+    const token = api.getToken();
+    if (!token) return;
+    const BACKEND_HOST = 'localhost:8000';
+    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const wsUrl = `${proto}://${BACKEND_HOST}/ws/admin/notifications/?token=${token}`;
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+
+    ws.onopen = () => setWsStatus('connected');
+    ws.onerror = () => setWsStatus('error');
+    ws.onclose = () => setWsStatus('disconnected');
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'notification') {
+          setNotifications((prev) => [msg.notification, ...prev]);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    return () => {
+      if (wsRef.current) wsRef.current.close();
+    };
+  }, []);
+
+  const statusDot = wsStatus === 'connected'
+    ? { bg: '#4ade80', label: 'Live' }
+    : wsStatus === 'connecting'
+      ? { bg: '#f59e0b', label: 'Connecting…' }
+      : { bg: '#ef4444', label: 'Offline' };
+
+  return (
+    <div style={{
+      marginTop: '2.5rem',
+      background: '#fff',
+      border: '1px solid #e2e8f0',
+      borderRadius: 20,
+      overflow: 'hidden',
+      boxShadow: '0 2px 16px rgba(0,0,0,0.04)',
+    }}>
+      <style>{`
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateY(-12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .admin-notif-item {
+          display: flex;
+          gap: 14px;
+          align-items: flex-start;
+          padding: 16px 24px;
+          border-bottom: 1px solid #f8fafc;
+          animation: slideIn 0.3s cubic-bezier(.4,0,.2,1);
+          transition: background 0.15s;
+        }
+        .admin-notif-item:last-child { border-bottom: none; }
+        .admin-notif-item:hover { background: #fafafa; }
+        .admin-notif-topic-badge {
+          font-size: 0.7rem;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          padding: 3px 8px;
+          border-radius: 6px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+      `}</style>
+
+      {/* Panel header */}
+      <div style={{
+        padding: '18px 24px',
+        borderBottom: '1px solid #f1f5f9',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" width="20" height="20">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>
+            Recent Activity
+          </span>
+          {notifications.length > 0 && (
+            <span style={{
+              background: '#f0f0ff',
+              color: '#6366f1',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              padding: '2px 8px',
+              borderRadius: 99,
+            }}>
+              {notifications.length}
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: '#64748b' }}>
+          <span style={{
+            width: 7,
+            height: 7,
+            borderRadius: '50%',
+            background: statusDot.bg,
+            display: 'inline-block',
+            animation: wsStatus === 'connected' ? 'pulse-anim 2s infinite' : 'none',
+          }} />
+          {statusDot.label}
+        </div>
+      </div>
+
+      {/* Notification list */}
+      <div style={{ maxHeight: 480, overflowY: 'auto' }}>
+        {notifications.length === 0 ? (
+          <div style={{ padding: '48px 24px', textAlign: 'center', color: '#94a3b8' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🔔</div>
+            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#64748b' }}>No activity yet</div>
+            <div style={{ fontSize: '0.8rem', marginTop: 4 }}>
+              Notifications will appear here in real time
+            </div>
+          </div>
+        ) : (
+          notifications.map((n) => {
+            const style = TOPIC_STYLES[n.topic] || TOPIC_STYLES.Users;
+            return (
+              <div key={n.id} className="admin-notif-item">
+                {/* Icon */}
+                <div style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  background: style.bg,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.2rem',
+                  flexShrink: 0,
+                }}>
+                  {style.icon}
+                </div>
+                {/* Content */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0f172a' }}>{n.title}</span>
+                    <span
+                      className="admin-notif-topic-badge"
+                      style={{ background: style.bg, color: style.text }}
+                    >
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: style.dot, display: 'inline-block' }} />
+                      {n.topic}
+                    </span>
+                  </div>
+                  {n.body && (
+                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 3, lineHeight: 1.45 }}>
+                      {n.body}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 5 }}>
+                    {timeAgo(n.created_at)}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -315,6 +522,9 @@ export default function AdminDashboard() {
           ))}
         </div>
       )}
+
+      {/* ── Real-time Admin Notifications Panel ── */}
+      <AdminNotificationsPanel />
     </div>
   );
 }

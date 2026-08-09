@@ -182,6 +182,19 @@ class ApiClient {
   getCalendarEvents() {
     return this.json('/calendar-events/')
   }
+
+  // ─── Notification helpers ───────────────────────────────────────────────
+  getUserNotifications() {
+    return this.json('/admin/user-notifications/');
+  }
+
+  markUserNotificationsRead() {
+    return this.json('/admin/user-notifications/mark-read/', { method: 'POST' });
+  }
+
+  getAdminNotifications() {
+    return this.json('/admin/notifications/');
+  }
 }
 
 export const api = new ApiClient();
