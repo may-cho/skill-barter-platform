@@ -17,8 +17,9 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await login(username, password);
-      navigate('/');
+      const profile = await login(username, password);
+      const isAdmin = Boolean(profile?.is_admin || profile?.is_staff || profile?.is_superuser);
+      navigate(isAdmin ? '/admin' : '/profile', { replace: true });
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {
@@ -63,8 +64,9 @@ export function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      await register(form);
-      navigate('/');
+      const profile = await register(form);
+      const isAdmin = Boolean(profile?.is_admin || profile?.is_staff || profile?.is_superuser);
+      navigate(isAdmin ? '/admin' : '/profile', { replace: true });
     } catch (err) {
       setError(err.message || 'Registration failed');
     } finally {

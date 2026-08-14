@@ -10,6 +10,7 @@ services:
       - ./backend:/app
     env_file:
       - .env
+
   frontend:
     build: ./frontend
     ports:
@@ -19,6 +20,11 @@ services:
       - /app/node_modules
     env_file:
       - .env
+    environment:
+      VITE_API_TARGET: http://backend:8000
+    depends_on:
+      - backend
+
   db:
     image: postgres:18.4-alpine
     environment:

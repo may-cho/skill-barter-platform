@@ -31,7 +31,8 @@ INSTALLED_APPS = [
     'apps.messaging',
     'apps.scheduling',
     'apps.reviews',
-    'apps.calendar_integration'
+    'apps.calendar_integration',
+    'apps.admin_dashboard',
 ]
 
 MIDDLEWARE = [

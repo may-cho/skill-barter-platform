@@ -6,6 +6,7 @@ from django.db.models import Avg
 class User(AbstractUser):
     bio = models.TextField(blank=True)
     location = models.CharField(max_length=255, blank=True)
+    is_admin = models.BooleanField(default=False)
     timezone = models.CharField(max_length=100, default='UTC')
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     last_active_at = models.DateTimeField(null=True, blank=True)
@@ -14,6 +15,12 @@ class User(AbstractUser):
         indexes = [
             models.Index(fields=['email']),
         ]
+
+    def save(self, *args, **kwargs):
+        # ensure Django admin access flags follow is_admin
+        if self.is_admin:
+            self.is_staff = True
+        super().save(*args, **kwargs)
 
     @property
     def average_rating(self):

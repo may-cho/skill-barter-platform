@@ -76,6 +76,7 @@ export default function ProposalsPage() {
 
 
   return (
+<<<<<<< HEAD
     <div className="h-full flex flex-col bg-[#fafafa] overflow-hidden">
       {/* ─── Header ─── */}
       <div className="shrink-0 bg-white border-b border-slate-200/60 px-6 py-4">
@@ -123,6 +124,97 @@ export default function ProposalsPage() {
               ))}
             </div>
           )}
+=======
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Barter Proposals</h1>
+      </div>
+
+      {proposals.length === 0 ? (
+        <Card className="p-8 text-center text-slate-500">No proposals yet.</Card>
+      ) : (
+        <div className="space-y-4">
+          {proposals.map((p) => (
+            <Card key={p.id} className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge status={p.status} />
+                    <span className="text-sm text-slate-500">#{p.id}</span>
+                  </div>
+                  <p className="font-medium">
+                    {p.sender === user.id ? 'You' : p.sender_name} offer{' '}
+                    <span className="text-indigo-600">{p.offered_hours}h of {p.offered_skill_title}</span>
+                    {' '}for{' '}
+                    <span className="text-indigo-600">{p.requested_hours}h of {p.requested_skill_title}</span>
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {p.sender === user.id ? `To: ${p.receiver_name}` : `From: ${p.sender_name}`}
+                  </p>
+                </div>
+                <div className="flex gap-2 flex-wrap justify-end">
+                  {p.status === 'Accepted' && (
+                  <Button variant="ghost" onClick={() => setActiveChat(activeChat === p.id ? null : p.id)}>
+                    Chat
+                  </Button>
+                  )}
+                  {p.status === 'Accepted' && (
+                    <Link to={`/calendar?proposal=${p.id}`}>
+                      <Button variant="secondary">Schedule</Button>
+                    </Link>
+                  )}
+                  {['Pending', 'Negotiating'].includes(p.status) && p.receiver === user.id && (
+                    <>
+                      <Button onClick={() => act(p.id, 'accept')}>Accept</Button>
+                      <Button variant="danger" onClick={() => act(p.id, 'reject')}>Reject</Button>
+                    </>
+                  )}
+                  {['Pending', 'Negotiating'].includes(p.status) && (
+                    <Button variant="secondary" onClick={() => setCounterForm({ ...counterForm, [p.id]: !counterForm[p.id] })}>
+                      Counter
+                    </Button>
+                  )}
+                  {p.status === 'Accepted' && (
+                    <Button onClick={() => act(p.id, 'complete')}>Mark Complete</Button>
+                  )}
+                  {!['Completed', 'Canceled'].includes(p.status) && (
+                    <Button variant="ghost" onClick={() => act(p.id, 'cancel')}></Button>
+                  )}
+                {p.status === 'Completed' && (
+             <Link to={`/reviews/new?proposal=${p.id}`}>
+              <Button variant="secondary">Leave Review</Button>
+            </Link>
+              )}
+                </div>
+              </div>
+
+              {counterForm[p.id] && (
+                <CounterOfferForm
+                  proposalId={p.id}
+                  onSubmit={(data) => act(p.id, 'counter', data).then(() => setCounterForm({ ...counterForm, [p.id]: false }))}
+                />
+              )}
+
+              {p.counter_offers?.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-slate-100">
+                  <p className="text-xs font-medium text-slate-500 mb-2">Negotiation History</p>
+                  {p.counter_offers.map((c) => (
+                    <p key={c.id} className="text-sm text-slate-600">
+                      {c.author_name}: {c.offered_hours}h ↔ {c.requested_hours}h
+                      {c.message && ` — "${c.message}"`}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {activeChat === p.id && (
+                <div className="mt-4 pt-4 border-t border-slate-100">
+                  <ProposalChat proposalId={p.id} />
+                </div>
+              )}
+            </Card>
+          ))}
+>>>>>>> c0be55108814138758774b00d828c08fd643eb40
         </div>
       </div>
 

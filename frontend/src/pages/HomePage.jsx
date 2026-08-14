@@ -590,6 +590,23 @@ export default function HomePage() {
               </button>
             </div>
           </div>
+
+              <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
+                <Link
+                  to={`/users/${match.user_id}`}
+                  className="text-sm font-medium text-slate-600 hover:text-slate-900"
+                >
+                  View Profile
+                </Link>
+                <Link
+                  to={`/proposals/new?user=${match.user_id}`}
+                  className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                >
+                  Send barter proposal →
+                </Link>
+              </div>
+            </Card>
+          ))}
         </div>
       )}
     </div>

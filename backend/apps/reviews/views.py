@@ -2,6 +2,7 @@ from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.admin_dashboard.models import create_user_notification, UserNotificationType
 from apps.proposals.models import Proposal, ProposalStatus
 
 from .models import Review
@@ -52,7 +53,17 @@ class ReviewSerializer(serializers.ModelSerializer):
         validated_data['reviewer'] = reviewer
         validated_data['reviewee'] = reviewee
 
-        return super().create(validated_data)
+        review = super().create(validated_data)
+
+        # Notify the reviewee in real time
+        create_user_notification(
+            recipient=reviewee,
+            notif_type=UserNotificationType.REVIEW_RECEIVED,
+            title='New review received ⭐',
+            body=f'{reviewer.username} left you a {review.rating}-star review.',
+        )
+
+        return review
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -62,19 +73,32 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        target_user_id = self.request.query_params.get('user_id')
+        if target_user_id:
+            return Review.objects.filter(reviewee_id=target_user_id)
         return Review.objects.filter(reviewee=user)
 
     @action(detail=False, methods=['get'], url_path='received')
     def received_reviews(self, request):
         """Endpoint: /api/reviews/received/"""
-        reviews = Review.objects.filter(reviewee=request.user)
+        target_user_id = request.query_params.get('user_id')
+        if target_user_id:
+            reviews = Review.objects.filter(reviewee_id=target_user_id)
+        else:
+            reviews = Review.objects.filter(reviewee=request.user)
+
         serializer = self.get_serializer(reviews, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], url_path='given')
     def given_reviews(self, request):
         """Endpoint: /api/reviews/given/"""
-        reviews = Review.objects.filter(reviewer=request.user)
+        target_user_id = request.query_params.get('user_id')
+        if target_user_id:
+            reviews = Review.objects.filter(reviewer_id=target_user_id)
+        else:
+            reviews = Review.objects.filter(reviewer=request.user)
+
         serializer = self.get_serializer(reviews, many=True)
         return Response(serializer.data)
 

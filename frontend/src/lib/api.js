@@ -90,6 +90,10 @@ class ApiClient {
     return this.json("/auth/me/");
   }
 
+  getUserProfile(id) {
+    return this.json(`/auth/users/${id}/`);
+  }
+
   updateProfile(data) {
     return this.json("/auth/me/", {
       method: "PATCH",
@@ -118,6 +122,13 @@ class ApiClient {
 
   deleteSkill(id) {
     return this.request(`/skills/${id}/`, { method: "DELETE" });
+  }
+
+  updateSkill(id, data) {
+    return this.json(`/skills/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
   }
 
   getMyProposals() {
@@ -166,11 +177,56 @@ class ApiClient {
   getReviews() {
     return this.json("/reviews/");
   }
+
+  updateAdminUser(id, data) {
+    return this.json(`/admin/users/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  updateAdminProposal(id, data) {
+    return this.json(`/admin/proposals/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  updateAdminSkill(id, data) {
+    return this.json(`/admin/skills/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  deleteAdminSkill(id) {
+    return this.request(`/admin/skills/${id}/`, { method: "DELETE" });
+  }
+
+  getDashboardStats() {
+    return this.json("/admin/dashboard-stats/");
+  }
+
   getCalendarEvents() {
     return this.json("/proposals/calendar-events/");
   }
   getConversations() {
     return this.json("/proposals/conversations/");
+  }
+
+  // ─── Notification helpers ───────────────────────────────────────────────
+  getUserNotifications() {
+    return this.json("/admin/user-notifications/");
+  }
+
+  markUserNotificationsRead() {
+    return this.json("/admin/user-notifications/mark-read/", {
+      method: "POST",
+    });
+  }
+
+  getAdminNotifications() {
+    return this.json("/admin/notifications/");
   }
 }
 
@@ -219,4 +275,5 @@ export const TIMEZONES = [
   "Asia/Tokyo",
   "Asia/Kolkata",
   "Australia/Sydney",
+  "Asia/Yangon",
 ];
