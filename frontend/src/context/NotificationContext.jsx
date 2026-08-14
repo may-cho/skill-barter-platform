@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { useAuth } from './AuthContext';
-import { api } from '../lib/api';
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { useAuth } from "./AuthContext";
+import { api } from "../lib/api";
 
 const NotificationContext = createContext(null);
 
@@ -10,15 +10,19 @@ export function NotificationProvider({ children }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const wsRef = useRef(null);
 
-  // Fetch initial notifications via REST and open WebSocket
+  // Helper to ensure we always have an array
+  const safeArray = (value) => (Array.isArray(value) ? value : []);
+
   useEffect(() => {
     if (!user || user.is_admin || user.is_staff || user.is_superuser) return;
 
     // Fetch stored notifications on mount
-    api.getUserNotifications()
+    api
+      .getUserNotifications()
       .then((data) => {
-        setNotifications(data);
-        setUnreadCount(data.filter((n) => !n.is_read).length);
+        const list = safeArray(data);
+        setNotifications(list);
+        setUnreadCount(list.filter((n) => !n.is_read).length);
       })
       .catch(() => {});
 
@@ -26,7 +30,7 @@ export function NotificationProvider({ children }) {
     const token = api.getToken();
     if (!token) return;
 
-    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const proto = window.location.protocol === "https:" ? "wss" : "ws";
     const wsUrl = `${proto}://${window.location.host}/ws/user/notifications/?token=${token}`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
@@ -35,19 +39,30 @@ export function NotificationProvider({ children }) {
       try {
         const msg = JSON.parse(event.data);
 
-        if (msg.type === 'initial_notifications') {
-          // Server sends full list on connect — use it as source of truth
-          setNotifications(msg.notifications);
-          setUnreadCount(msg.notifications.filter((n) => !n.is_read).length);
-        } else if (msg.type === 'new_notification') {
-          setNotifications((prev) => [msg.notification, ...prev]);
+        if (msg.type === "initial_notifications") {
+          const list = safeArray(msg.notifications);
+          setNotifications(list);
+          setUnreadCount(list.filter((n) => !n.is_read).length);
+        } else if (msg.type === "new_notification") {
+          // FIX: Use msg.notification (or whatever the actual payload field is)
+          const newNotif = msg.notification; // <-- this is the key fix
+          if (!newNotif) return; // safety check
+
+          setNotifications((prev) => {
+            const base = safeArray(prev);
+            return [...base, newNotif];
+          });
           setUnreadCount((c) => c + 1);
-        } else if (msg.type === 'marked_read') {
-          setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+        } else if (msg.type === "marked_read") {
+          setNotifications((prev) => {
+            const base = safeArray(prev);
+            return base.map((n) => ({ ...n, is_read: true }));
+          });
           setUnreadCount(0);
         }
-      } catch {
-        // ignore malformed messages
+      } catch (err) {
+        // ignore malformed messages, but log for debugging
+        console.warn("WebSocket message error:", err);
       }
     };
 
@@ -63,11 +78,14 @@ export function NotificationProvider({ children }) {
     try {
       // Tell server via WS (preferred) or REST fallback
       if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: 'mark_read' }));
+        wsRef.current.send(JSON.stringify({ type: "mark_read" }));
       } else {
         await api.markUserNotificationsRead();
       }
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setNotifications((prev) => {
+        const base = safeArray(prev);
+        return base.map((n) => ({ ...n, is_read: true }));
+      });
       setUnreadCount(0);
     } catch {
       // silent
@@ -75,7 +93,9 @@ export function NotificationProvider({ children }) {
   };
 
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, markAllRead }}>
+    <NotificationContext.Provider
+      value={{ notifications, unreadCount, markAllRead }}
+    >
       {children}
     </NotificationContext.Provider>
   );
@@ -83,6 +103,9 @@ export function NotificationProvider({ children }) {
 
 export function useNotifications() {
   const ctx = useContext(NotificationContext);
-  if (!ctx) throw new Error('useNotifications must be used within NotificationProvider');
+  if (!ctx)
+    throw new Error(
+      "useNotifications must be used within NotificationProvider",
+    );
   return ctx;
 }

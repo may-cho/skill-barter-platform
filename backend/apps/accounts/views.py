@@ -42,15 +42,14 @@ class UserSerializer(serializers.ModelSerializer):
             }
             for s in skills
         ]
-
     def get_reviews(self, obj):
-        received_reviews = Review.objects.filter(reviewee=obj).select_related('reviewer', 'proposal__offered_skill')[:5]
+        received_reviews = Review.objects.filter(reviewee=obj).select_related('reviewer', 'proposal').prefetch_related('proposal__offered_skills')[:5]
         return [
             {
                 "comment": rev.comment,
                 "rating": rev.rating,
                 "partner_name": rev.reviewer.username,
-                "skill_name": rev.proposal.offered_skill.title if rev.proposal and rev.proposal.offered_skill else "Skill Exchange"
+                "skill_name": rev.proposal.offered_skills.first().title if rev.proposal and rev.proposal.offered_skills.exists() else "Skill Exchange"
             }
             for rev in received_reviews
         ]
@@ -59,24 +58,21 @@ class UserSerializer(serializers.ModelSerializer):
         completed_proposals = Proposal.objects.filter(
             Q(sender=obj) | Q(receiver=obj),
             status=ProposalStatus.COMPLETED
-        ).select_related('sender', 'receiver', 'offered_skill', 'requested_skill')[:5]
-
+        ).select_related('sender', 'receiver').prefetch_related('offered_skills', 'requested_skills')[:5]
         history = []
         for p in completed_proposals:
             is_sender = p.sender_id == obj.id
             partner = p.receiver if is_sender else p.sender
-            taught = p.offered_skill.title if is_sender and p.offered_skill else (
-                p.requested_skill.title if p.requested_skill else "Skill")
-            learned = p.requested_skill.title if is_sender and p.requested_skill else (
-                p.offered_skill.title if p.offered_skill else "Skill")
-
+            offered = p.offered_skills.first()
+            requested = p.requested_skills.first()
+            taught = offered.title if is_sender and offered else (requested.title if requested else "Skill")
+            learned = requested.title if is_sender and requested else (offered.title if offered else "Skill")
             history.append({
                 "partner_name": partner.username,
                 "taught_skill": taught,
                 "learned_skill": learned
             })
         return history
-
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)

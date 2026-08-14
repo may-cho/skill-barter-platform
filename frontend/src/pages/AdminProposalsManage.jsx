@@ -1,30 +1,42 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/api';
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { api } from "../lib/api";
 
-const PROPOSAL_STATUSES = ['Pending', 'Negotiating', 'Accepted', 'Completed', 'Canceled'];
+const PROPOSAL_STATUSES = [
+  "Pending",
+  "Negotiating",
+  "Accepted",
+  "Completed",
+  "Canceled",
+];
 
 const STATUS_META = {
-  Pending:     { bg: '#fef3c7', color: '#92400e', border: '#fde68a' },
-  Negotiating: { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' },
-  Accepted:    { bg: '#d1fae5', color: '#065f46', border: '#a7f3d0' },
-  Completed:   { bg: '#f1f5f9', color: '#334155', border: '#cbd5e1' },
-  Canceled:    { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
+  Pending: { bg: "#fef3c7", color: "#92400e", border: "#fde68a" },
+  Negotiating: { bg: "#dbeafe", color: "#1e40af", border: "#bfdbfe" },
+  Accepted: { bg: "#d1fae5", color: "#065f46", border: "#a7f3d0" },
+  Completed: { bg: "#f1f5f9", color: "#334155", border: "#cbd5e1" },
+  Canceled: { bg: "#fee2e2", color: "#991b1b", border: "#fca5a5" },
 };
 
 function StatusBadge({ status }) {
-  const m = STATUS_META[status] || { bg: '#f1f5f9', color: '#334155', border: '#cbd5e1' };
+  const m = STATUS_META[status] || {
+    bg: "#f1f5f9",
+    color: "#334155",
+    border: "#cbd5e1",
+  };
   return (
-    <span style={{
-      display: 'inline-block',
-      padding: '3px 10px',
-      borderRadius: 999,
-      fontSize: '0.75rem',
-      fontWeight: 600,
-      background: m.bg,
-      color: m.color,
-      border: `1px solid ${m.border}`,
-    }}>
+    <span
+      style={{
+        display: "inline-block",
+        padding: "3px 10px",
+        borderRadius: 999,
+        fontSize: "0.75rem",
+        fontWeight: 600,
+        background: m.bg,
+        color: m.color,
+        border: `1px solid ${m.border}`,
+      }}
+    >
       {status}
     </span>
   );
@@ -36,18 +48,18 @@ export default function AdminProposalsManage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState({});
-  const [toast, setToast] = useState('');
-  const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('All');
+  const [toast, setToast] = useState("");
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("All");
 
   const showToast = (msg) => {
     setToast(msg);
-    setTimeout(() => setToast(''), 2800);
+    setTimeout(() => setToast(""), 2800);
   };
 
   const load = useCallback(async () => {
     try {
-      const data = await api.json('/admin/proposals/');
+      const data = await api.json("/admin/proposals/");
       setProposals(data.results ?? data);
     } catch (err) {
       setError(err.message);
@@ -56,13 +68,19 @@ export default function AdminProposalsManage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleStatusChange = async (proposal, newStatus) => {
     setSaving((s) => ({ ...s, [proposal.id]: true }));
     try {
-      const updated = await api.updateAdminProposal(proposal.id, { status: newStatus });
-      setProposals((prev) => prev.map((p) => (p.id === proposal.id ? { ...p, ...updated } : p)));
+      const updated = await api.updateAdminProposal(proposal.id, {
+        status: newStatus,
+      });
+      setProposals((prev) =>
+        prev.map((p) => (p.id === proposal.id ? { ...p, ...updated } : p)),
+      );
       showToast(`Proposal #${proposal.id} → ${newStatus}`);
     } catch (err) {
       showToast(`Error: ${err.message}`);
@@ -72,18 +90,25 @@ export default function AdminProposalsManage() {
   };
 
   const filtered = proposals.filter((p) => {
-    const matchStatus = filterStatus === 'All' || p.status === filterStatus;
+    const matchStatus = filterStatus === "All" || p.status === filterStatus;
     const q = search.toLowerCase();
-    const matchSearch = !q ||
+    const matchSearch =
+      !q ||
       String(p.id).includes(q) ||
       String(p.sender).toLowerCase().includes(q) ||
       String(p.receiver).toLowerCase().includes(q) ||
-      (p.status || '').toLowerCase().includes(q);
+      (p.status || "").toLowerCase().includes(q);
     return matchStatus && matchSearch;
   });
 
   return (
-    <div style={{ minHeight: '100%', padding: '2rem', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div
+      style={{
+        minHeight: "100%",
+        padding: "2rem",
+        fontFamily: "Inter, system-ui, sans-serif",
+      }}
+    >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         .manage-table { width: 100%; border-collapse: collapse; }
@@ -140,23 +165,70 @@ export default function AdminProposalsManage() {
       {toast && <div className="toast-bar">{toast}</div>}
 
       {/* Page Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-        <button id="proposals-back-btn" className="back-btn" onClick={() => navigate('/admin')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14">
-            <path d="M19 12H5M12 5l-7 7 7 7" strokeLinecap="round" strokeLinejoin="round" />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "1rem",
+          marginBottom: "0.5rem",
+          flexWrap: "wrap",
+        }}
+      >
+        <button
+          id="proposals-back-btn"
+          className="back-btn"
+          onClick={() => navigate("/admin")}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            width="14"
+            height="14"
+          >
+            <path
+              d="M19 12H5M12 5l-7 7 7 7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
           Back to Dashboard
         </button>
         <div>
-          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: '#0f172a' }}>Proposals</h1>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "1.5rem",
+              fontWeight: 800,
+              color: "#0f172a",
+            }}
+          >
+            Proposals
+          </h1>
         </div>
       </div>
-      <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1.75rem', marginTop: '0.25rem' }}>
+      <p
+        style={{
+          color: "#64748b",
+          fontSize: "0.875rem",
+          marginBottom: "1.75rem",
+          marginTop: "0.25rem",
+        }}
+      >
         Review and update the status of all skill-barter proposals.
       </p>
 
       {/* Filters */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem', alignItems: 'center' }}>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "0.75rem",
+          marginBottom: "1.25rem",
+          alignItems: "center",
+        }}
+      >
         <input
           id="proposals-search"
           className="search-input"
@@ -164,7 +236,7 @@ export default function AdminProposalsManage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        {['All', ...PROPOSAL_STATUSES].map((s) => {
+        {["All", ...PROPOSAL_STATUSES].map((s) => {
           const active = filterStatus === s;
           const m = STATUS_META[s];
           return (
@@ -172,9 +244,9 @@ export default function AdminProposalsManage() {
               key={s}
               className="filter-chip"
               style={{
-                background: active ? (m ? m.bg : '#ede9fe') : '#f8fafc',
-                color: active ? (m ? m.color : '#4f46e5') : '#64748b',
-                borderColor: active ? (m ? m.border : '#c4b5fd') : '#e2e8f0',
+                background: active ? (m ? m.bg : "#ede9fe") : "#f8fafc",
+                color: active ? (m ? m.color : "#4f46e5") : "#64748b",
+                borderColor: active ? (m ? m.border : "#c4b5fd") : "#e2e8f0",
               }}
               onClick={() => setFilterStatus(s)}
             >
@@ -182,26 +254,59 @@ export default function AdminProposalsManage() {
             </button>
           );
         })}
-        <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#94a3b8', fontWeight: 500 }}>
-          {filtered.length} proposal{filtered.length !== 1 ? 's' : ''}
+        <span
+          style={{
+            marginLeft: "auto",
+            fontSize: "0.8rem",
+            color: "#94a3b8",
+            fontWeight: 500,
+          }}
+        >
+          {filtered.length} proposal{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
 
       {/* Error */}
       {error && (
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '0.85rem 1rem', color: '#b91c1c', marginBottom: '1rem', fontSize: '0.875rem' }}>
+        <div
+          style={{
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            borderRadius: 10,
+            padding: "0.85rem 1rem",
+            color: "#b91c1c",
+            marginBottom: "1rem",
+            fontSize: "0.875rem",
+          }}
+        >
           ⚠️ {error}
         </div>
       )}
 
       {/* Table */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,0.05)' }}>
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #e2e8f0",
+          borderRadius: 16,
+          overflow: "hidden",
+          boxShadow: "0 1px 6px rgba(0,0,0,0.05)",
+        }}
+      >
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>Loading proposals…</div>
+          <div
+            style={{ padding: "3rem", textAlign: "center", color: "#94a3b8" }}
+          >
+            Loading proposals…
+          </div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>No proposals found.</div>
+          <div
+            style={{ padding: "3rem", textAlign: "center", color: "#94a3b8" }}
+          >
+            No proposals found.
+          </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: "auto" }}>
             <table className="manage-table">
               <thead>
                 <tr>
@@ -218,13 +323,23 @@ export default function AdminProposalsManage() {
               <tbody>
                 {filtered.map((p) => (
                   <tr key={p.id}>
-                    <td style={{ fontWeight: 700, color: '#0f172a' }}>#{p.id}</td>
+                    <td style={{ fontWeight: 700, color: "#0f172a" }}>
+                      #{p.id}
+                    </td>
                     <td>{p.sender}</td>
                     <td>{p.receiver}</td>
-                    <td style={{ color: '#64748b' }}>{p.offered_skill || '—'}</td>
-                    <td style={{ color: '#64748b' }}>{p.requested_skill || '—'}</td>
-                    <td><StatusBadge status={p.status} /></td>
-                    <td style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{new Date(p.created_at).toLocaleDateString()}</td>
+                    <td style={{ color: "#64748b" }}>
+                      {p.offered_skill_titles?.join(", ") || "—"}
+                    </td>
+                    <td style={{ color: "#64748b" }}>
+                      {p.requested_skill_titles?.join(", ") || "—"}
+                    </td>
+                    <td>
+                      <StatusBadge status={p.status} />
+                    </td>
+                    <td style={{ color: "#94a3b8", fontSize: "0.8rem" }}>
+                      {new Date(p.created_at).toLocaleDateString()}
+                    </td>
                     <td>
                       <select
                         className="status-select"
@@ -234,7 +349,9 @@ export default function AdminProposalsManage() {
                         aria-label={`Change status for proposal ${p.id}`}
                       >
                         {PROPOSAL_STATUSES.map((s) => (
-                          <option key={s} value={s}>{s}</option>
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
                         ))}
                       </select>
                     </td>

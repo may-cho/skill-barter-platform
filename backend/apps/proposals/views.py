@@ -12,6 +12,7 @@ from ..messaging.models import Message
 from ..messaging.views import MessageSerializer,ConversationSerializer
 from apps.skills.models import Skill, SkillType
 from .models import CounterOffer, Proposal, ProposalStatus
+from ..accounts.views import UserSerializer
 
 
 class CounterOfferSerializer(serializers.ModelSerializer):
@@ -26,27 +27,34 @@ class CounterOfferSerializer(serializers.ModelSerializer):
 
 
 class ProposalSerializer(serializers.ModelSerializer):
-    sender_name = serializers.CharField(source='sender.username', read_only=True)
-    receiver_name = serializers.CharField(source='receiver.username', read_only=True)
     offered_skill_titles = serializers.SerializerMethodField()
     requested_skill_titles = serializers.SerializerMethodField()
-    counter_offers = CounterOfferSerializer(many=True, read_only=True)
+    sender = UserSerializer(read_only=True)
+    receiver = UserSerializer(read_only=True)
+    other_user = serializers.SerializerMethodField()
+    sender_name = serializers.CharField(source='sender.username', read_only=True)
+    receiver_name = serializers.CharField(source='receiver.username', read_only=True)
     class Meta:
         model = Proposal
         fields = (
-            'id', 'sender', 'sender_name', 'receiver', 'receiver_name',
-            'offered_skills', 'offered_skill_titles', 'requested_skills',
-            'requested_skill_titles', 'offered_hours', 'requested_hours',
-            'message', 'status', 'counter_offers', 'created_at', 'updated_at',
+            'id', 'sender', 'receiver', 'other_user', 'offered_skills', 'offered_skill_titles','offered_hours','sender_name','receiver_name',
+            'requested_skills', 'requested_skill_titles','requested_hours', 'status', 'created_at', 'updated_at',
         )
-        read_only_fields = ('id', 'sender', 'status', 'created_at', 'updated_at')
+
+
+    def get_other_user(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            # return the other participant
+            other = obj.receiver if obj.sender == request.user else obj.sender
+            return UserSerializer(other, context=self.context).data
+        return None
 
     def get_offered_skill_titles(self, obj):
         return [skill.title for skill in obj.offered_skills.all()]
 
     def get_requested_skill_titles(self, obj):
         return [skill.title for skill in obj.requested_skills.all()]
-
 
 class ProposalCreateSerializer(serializers.ModelSerializer):
     offered_skills = serializers.PrimaryKeyRelatedField(

@@ -14,9 +14,21 @@ class AdminUserSerializer(serializers.ModelSerializer):
 
 
 class ProposalSerializer(serializers.ModelSerializer):
+    offered_skill_titles = serializers.SerializerMethodField()
+    requested_skill_titles = serializers.SerializerMethodField()
+
     class Meta:
         model = Proposal
-        fields = ('id', 'sender', 'receiver', 'offered_skill', 'requested_skill', 'status', 'created_at', 'updated_at')
+        fields = (
+            'id', 'sender', 'receiver', 'offered_skills', 'offered_skill_titles',
+            'requested_skills', 'requested_skill_titles', 'status', 'created_at', 'updated_at',
+        )
+
+    def get_offered_skill_titles(self, obj):
+        return [skill.title for skill in obj.offered_skills.all()]
+
+    def get_requested_skill_titles(self, obj):
+        return [skill.title for skill in obj.requested_skills.all()]
 
 
 class SkillSerializer(serializers.ModelSerializer):
