@@ -24,6 +24,9 @@ class SkillSerializer(serializers.ModelSerializer):
         validated_data['user'] = self.context['request'].user
         return super().create(validated_data)
 
+class SkillMatchSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    title = serializers.CharField()
 
 class MatchSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
@@ -32,8 +35,8 @@ class MatchSerializer(serializers.Serializer):
     timezone = serializers.CharField()
     location = serializers.CharField()
     match_score = serializers.IntegerField()
-    i_can_teach_for_them = serializers.ListField(child=serializers.CharField())
-    they_can_teach_for_me = serializers.ListField(child=serializers.CharField())
+    i_can_teach_for_them = SkillMatchSerializer(many=True)
+    they_can_teach_for_me = SkillMatchSerializer(many=True)
 
 
 class SkillViewSet(viewsets.ModelViewSet):
@@ -91,11 +94,13 @@ class SkillViewSet(viewsets.ModelViewSet):
             their_learn = Skill.objects.filter(user=candidate, type=SkillType.LEARN)
 
             i_teach_they_want = [
-                s.title for s in Skill.objects.filter(user=user, type=SkillType.TEACH)
+                {"id": s.id, "title": s.title}
+                for s in Skill.objects.filter(user=user, type=SkillType.TEACH)
                 if their_learn.filter(category=s.category).exists()
             ]
             they_teach_i_want = [
-                s.title for s in their_teach
+                {"id": s.id, "title": s.title}
+                for s in their_teach
                 if Skill.objects.filter(user=user, type=SkillType.LEARN, category=s.category).exists()
             ]
 

@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { api } from '../lib/api';
-import { Button, Input } from './ui';
+import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { api } from "../lib/api";
+import { Button, Input } from "./ui";
 
 export default function ProposalChat({ proposalId }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [quickReplies, setQuickReplies] = useState([]);
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const [connected, setConnected] = useState(false);
   const wsRef = useRef(null);
   const bottomRef = useRef(null);
@@ -20,19 +20,21 @@ export default function ProposalChat({ proposalId }) {
   }, [proposalId]);
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem("access_token");
 
-  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
-  const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/chat/proposal/${proposalId}/?token=${token}`);
+    const ws = new WebSocket(
+      `${wsProtocol}//${window.location.host}/ws/chat/proposal/${proposalId}/?token=${token}`,
+    );
 
     ws.onopen = () => setConnected(true);
     ws.onclose = () => setConnected(false);
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      if (data.type === 'connection_established') {
+      if (data.type === "connection_established") {
         setQuickReplies(data.quick_replies || []);
-      } else if (data.type === 'chat_message') {
+      } else if (data.type === "chat_message") {
         setMessages((prev) => {
           if (prev.some((m) => m.id === data.message.id)) return prev;
           return [...prev, data.message];
@@ -45,32 +47,41 @@ export default function ProposalChat({ proposalId }) {
   }, [proposalId]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const send = (message) => {
-    if (!message.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    if (
+      !message.trim() ||
+      !wsRef.current ||
+      wsRef.current.readyState !== WebSocket.OPEN
+    )
+      return;
     wsRef.current.send(JSON.stringify({ message }));
-    setText('');
+    setText("");
   };
 
   return (
     <div className="border border-slate-200 rounded-lg overflow-hidden">
       <div className="bg-slate-50 px-4 py-2 text-xs text-slate-500 flex justify-between">
         <span>Proposal Chat #{proposalId}</span>
-        <span className={connected ? 'text-green-600' : 'text-red-500'}>
-          {connected ? '● Live' : '○ Disconnected'}
+        <span className={connected ? "text-green-600" : "text-red-500"}>
+          {connected ? "● Live" : "○ Disconnected"}
         </span>
       </div>
       <div className="h-64 overflow-y-auto p-4 space-y-3 bg-white">
         {messages.map((m) => (
           <div
             key={m.id || m.sent_at + m.message_text}
-            className={`flex ${m.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${m.sender_id === user.id ? "justify-end" : "justify-start"}`}
           >
-            <div className={`max-w-[75%] px-3 py-2 rounded-lg text-sm ${
-              m.sender_id === user.id ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-800'
-            }`}>
+            <div
+              className={`max-w-[75%] px-3 py-2 rounded-lg text-sm ${
+                m.sender_id === user.id
+                  ? "bg-indigo-600 text-white"
+                  : "bg-slate-100 text-slate-800"
+              }`}
+            >
               {m.sender_id !== user.id && (
                 <p className="text-xs opacity-70 mb-0.5">{m.sender_name}</p>
               )}
@@ -88,14 +99,17 @@ export default function ProposalChat({ proposalId }) {
               onClick={() => send(qr)}
               className="text-xs px-2 py-1 bg-indigo-50 text-indigo-700 rounded-full hover:bg-indigo-100"
             >
-              {qr.length > 50 ? qr.slice(0, 50) + '…' : qr}
+              {qr.length > 50 ? qr.slice(0, 50) + "…" : qr}
             </button>
           ))}
         </div>
       )}
       <form
         className="flex gap-2 p-3 border-t border-slate-200"
-        onSubmit={(e) => { e.preventDefault(); send(text); }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          send(text);
+        }}
       >
         <Input
           value={text}

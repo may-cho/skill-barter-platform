@@ -32,18 +32,11 @@ class Proposal(models.Model):
         on_delete=models.RESTRICT,
         related_name='received_proposals',
     )
-    offered_skill = models.ForeignKey(
-        'skills.Skill',
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='offered_in_proposals',
-    )
-    requested_skill = models.ForeignKey(
-        'skills.Skill',
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='requested_in_proposals',
-    )
+    offered_skills = models.ManyToManyField("skills.Skill", related_name='offered_in_proposals')
+    requested_skills = models.ManyToManyField("skills.Skill", related_name='requested_in_proposals')
+    next_session_at = models.DateTimeField(null=True, blank=True)
+    archived = models.BooleanField(default=False)
+    muted = models.BooleanField(default=False)
     offered_hours = models.DecimalField(max_digits=4, decimal_places=2)
     requested_hours = models.DecimalField(max_digits=4, decimal_places=2)
     status = models.CharField(
@@ -51,6 +44,7 @@ class Proposal(models.Model):
         choices=ProposalStatus.choices,
         default=ProposalStatus.PENDING,
     )
+    message = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -58,6 +52,8 @@ class Proposal(models.Model):
         db_table = 'proposals'
         indexes = [
             models.Index(fields=['status'], name='idx_proposals_status'),
+            models.Index(fields=['sender', 'archived'], name='idx_prop_sndr_arch'),
+        models.Index(fields=['receiver', 'archived'], name='idx_prop_rcvr_arch'),
         ]
         ordering = ['-updated_at']
 

@@ -54,7 +54,7 @@ export default function ReviewsPage() {
       const [receivedData, givenData, proposalsData] = await Promise.all([
         api.json ? api.json('/reviews/received/') : api.getReviews('/reviews/received/'),
         api.json ? api.json('/reviews/given/') : api.getReviews('/reviews/given/'),
-        api.getProposals()
+        api.getMyProposals()
       ]);
 
       setReceivedReviews(receivedData.results || receivedData);

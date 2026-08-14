@@ -7,6 +7,6 @@ router = DefaultRouter()
 router.register('', ProposalViewSet, basename='proposal')
 
 urlpatterns = [
-    path('', include(router.urls)),
-    path('calendar-events/', views.calendar_events)
+    path('calendar-events/', views.calendar_events),
+    path('', include(router.urls))
 ]

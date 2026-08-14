@@ -7,15 +7,7 @@ from apps.proposals.models import Proposal
 
 from .consumers import QUICK_REPLY_TEMPLATES
 from .models import Message
-
-
-class MessageSerializer(serializers.ModelSerializer):
-    sender_name = serializers.CharField(source='sender.username', read_only=True)
-
-    class Meta:
-        model = Message
-        fields = ('id', 'proposal', 'sender', 'sender_name', 'message_text', 'sent_at')
-        read_only_fields = ('id', 'sender', 'sent_at', 'sender_name')
+from .serializers import MessageSerializer,ConversationSerializer
 
 
 class MessageViewSet(viewsets.ModelViewSet):
