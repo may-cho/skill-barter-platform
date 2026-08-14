@@ -45,8 +45,8 @@ class ProposalSerializer(serializers.ModelSerializer):
     def get_other_user(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
-            # return the other participant
-            other = obj.receiver if obj.sender == request.user else obj.sender
+            # Use primary key comparison to be safe
+            other = obj.receiver if obj.sender_id == request.user.id else obj.sender
             return UserSerializer(other, context=self.context).data
         return None
 

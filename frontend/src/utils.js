@@ -19,6 +19,7 @@ export function timeAgo(isoString) {
 
 // ─── Clean Hours ──────────────────────────────────────────────────
 export function formatHours(hours) {
+  console.log("Hours", hours);
   if (hours === null || hours === undefined) return "0h";
 
   const num = typeof hours === "string" ? parseFloat(hours) : hours;

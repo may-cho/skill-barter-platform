@@ -209,6 +209,7 @@ function ProposalCard({
   onToggleChat,
 }) {
   console.log({ proposal });
+  console.log("U pp:", proposal.offered_skill_titles);
   const s = proposal.status?.toString().toLowerCase() || "";
   const isPending = s === "pending";
   const isNegotiating = s === "negotiating";
@@ -217,7 +218,7 @@ function ProposalCard({
   const isCompleted = s === "completed";
   const isRejected = s === "canceled";
 
-  const isReceiver = user && proposal.receiver === user.id;
+  const isReceiver = user && proposal.receiver.id === user.id;
 
   const name =
     proposal.otherUser?.username ||
@@ -231,14 +232,14 @@ function ProposalCard({
   const time =
     timeAgo(proposal.createdAt) || timeAgo(proposal.created_at) || "";
 
-  const giveSkills = Array.isArray(proposal.youGive)
-    ? proposal.youGive
-    : proposal.offered_skill_titles?.map((t, i) => ({
-        name: t,
-        hours: Array.isArray(proposal.offered_hours)
-          ? formatHours(proposal.offered_hours[i])
-          : formatHours(proposal.offered_hours),
-      })) || [{ name: "—", hours: "0" }];
+  const giveSkills = proposal.offered_skill_titles?.map((t, i) => ({
+    name: t,
+    hours: Array.isArray(proposal.offered_hours)
+      ? formatHours(proposal.offered_hours[i])
+      : formatHours(proposal.offered_hours),
+  })) || [{ name: "—", hours: "0" }];
+  console.log("offered skills titles", proposal.offered_skill_titles);
+  console.log({ giveSkills });
 
   const recSkills = Array.isArray(proposal.youReceive)
     ? proposal.youReceive
