@@ -147,6 +147,31 @@ class ProposalChatConsumer(AsyncWebsocketConsumer):
             'detail': detail,
         }))
 
+    async def receive_json(self, content):
+        action = content.get("action")
+
+        if action == "delete_message":
+            message_id = content.get("message_id")
+
+            # 1. Database မှ Message / File ကို ဖျက်ပါ (အကယ်၍ File ဖြစ်ပါက Storage မှပါ ဖျက်ပါ)
+            await self.delete_message_from_db(message_id)
+
+            # 2. WebSocket Group တစ်ခုလုံးသို့ message_deleted broadcast လွှတ်ပါ
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "chat_message_deleted",
+                    "message_id": message_id
+                }
+            )
+
+    async def chat_message_deleted(self, event):
+        # Front-end သို့ message_deleted event ပို့ပေးခြင်း
+        await self.send_json({
+            "type": "message_deleted",
+            "message_id": event["message_id"]
+        })
+
     # ─── Helpers ──────────────────────────────────────────────────────
     @staticmethod
     def default_content_for(msg_type):

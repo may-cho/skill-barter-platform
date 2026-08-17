@@ -1,15 +1,14 @@
-from django.conf import settings
-from django.db import models
-from django.db import transaction
-from django.utils import timezone
-from django.core.exceptions import ValidationError
-
 import uuid
-
+from django.db import models, transaction
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 class Message(models.Model):
     class MessageType(models.TextChoices):
         TEXT = 'text', 'Text'
+        IMAGE = 'image', 'Image'
+        FILE = 'file', 'File'
         TERM_PROPOSAL = 'term_proposal', 'Term Proposal'
         SESSION_PROPOSAL = 'session_proposal', 'Session Proposal'
         TERMS_UPDATED = 'terms_updated', 'Terms Updated'
@@ -39,9 +38,16 @@ class Message(models.Model):
         choices=MessageType.choices,
         default=MessageType.TEXT,
     )
-    content = models.TextField(blank=True)  # message body or system text
+    content = models.TextField(blank=True)  # message body, system text, or file caption
 
-    # Flexible storage for proposed terms, session slots, deal snapshots
+    # File Attachment for IMAGE or FILE message types
+    file = models.FileField(
+        upload_to='chat_attachments/%Y/%m/%d/',
+        null=True,
+        blank=True,
+    )
+
+    # Flexible storage for proposed terms, session slots, deal snapshots, or file metadata (file_name, file_size, mime_type)
     metadata = models.JSONField(default=dict, blank=True)
 
     # For TERM_PROPOSAL / SESSION_PROPOSAL only
@@ -83,6 +89,13 @@ class Message(models.Model):
         return self.sender is None
 
     @property
+    def is_media(self):
+        return self.message_type in (
+            self.MessageType.IMAGE,
+            self.MessageType.FILE,
+        )
+
+    @property
     def delivery_status(self):
         """Derived read/delivery state — distinct from Proposal.status (negotiation lifecycle)."""
         if self.is_system:
@@ -122,10 +135,10 @@ class Message(models.Model):
             message_type=self.MessageType.TERMS_UPDATED,
             content='Terms updated',
             metadata={
-            'offered_skills': [s.title for s in self.proposal.offered_skills.all()],
-            'offered_hours': float(self.proposal.offered_hours),
-            'requested_skills': [s.title for s in self.proposal.requested_skills.all()],
-            'requested_hours': float(self.proposal.requested_hours),
-    },
+                'offered_skills': [s.title for s in self.proposal.offered_skills.all()],
+                'offered_hours': float(self.proposal.offered_hours),
+                'requested_skills': [s.title for s in self.proposal.requested_skills.all()],
+                'requested_hours': float(self.proposal.requested_hours),
+            },
         )
         return self

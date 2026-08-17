@@ -4,6 +4,7 @@ export function useChatWebSocket(proposalId, onMessageReceived) {
   const socketRef = useRef(null);
   const onMessageRef = useRef(onMessageReceived);
 
+  // Keep callback ref updated to prevent stale closures inside socket listener
   useEffect(() => {
     onMessageRef.current = onMessageReceived;
   }, [onMessageReceived]);
@@ -14,19 +15,23 @@ export function useChatWebSocket(proposalId, onMessageReceived) {
 
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const ws = new WebSocket(
-      `${wsProtocol}//${window.location.host}/ws/chat/proposal/${proposalId}/?token=${token}`,
+      `${wsProtocol}//${window.location.host}/ws/chat/proposal/${proposalId}/?token=${token}`
     );
     socketRef.current = ws;
 
     ws.onopen = () =>
       console.log("WebSocket connected for proposal:", proposalId);
+
     ws.onclose = () =>
       console.log("WebSocket disconnected for proposal:", proposalId);
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log("Incoming WS raw frame:", data);
+
         if (onMessageRef.current) {
+          // Raw frame ကို တိုက်ရိုက် ရောက်စေပြီး page ဘက်မှ လိုအပ်သလို unpack လုပ်နိုင်စေသည်
           onMessageRef.current(data);
         }
       } catch (err) {
@@ -39,22 +44,7 @@ export function useChatWebSocket(proposalId, onMessageReceived) {
     };
   }, [proposalId]);
 
-  // Sends a regular chat message. Internally builds the { action: 'send_message', ... }
-  // frame the consumer's receive() dispatcher expects.
-  const sendMessage = useCallback(
-    ({ messageType = "text", content = "", metadata = {} }) => {
-      sendRaw({
-        action: "send_message",
-        message_type: messageType,
-        content,
-        metadata,
-      });
-    },
-    [],
-  );
-
-  // Sends an arbitrary action frame — e.g. { action: 'respond_to_proposal', message_id, response }.
-  // Use this for anything that isn't a plain chat message.
+  // Sends an arbitrary action frame
   const sendRaw = useCallback((payload) => {
     if (socketRef.current?.readyState !== WebSocket.OPEN) {
       console.error("WebSocket is not open. Unable to send message.");
@@ -64,7 +54,20 @@ export function useChatWebSocket(proposalId, onMessageReceived) {
     socketRef.current.send(JSON.stringify(payload));
   }, []);
 
-  // Convenience wrapper specifically for accept/decline on a proposal message.
+  // Sends a regular chat message
+  const sendMessage = useCallback(
+    ({ messageType = "text", content = "", metadata = {} }) => {
+      sendRaw({
+        action: "send_message",
+        message_type: messageType,
+        content,
+        metadata,
+      });
+    },
+    [sendRaw]
+  );
+
+  // Convenience wrapper for accept/decline on a proposal message
   const respondToProposal = useCallback(
     (messageId, response) => {
       sendRaw({
@@ -73,8 +76,18 @@ export function useChatWebSocket(proposalId, onMessageReceived) {
         response, // 'accepted' | 'declined'
       });
     },
-    [sendRaw],
+    [sendRaw]
   );
 
-  return { sendMessage, sendRaw, respondToProposal };
+  const deleteMessage = useCallback(
+  (messageId) => {
+    sendRaw({
+      action: "delete_message",
+      message_id: messageId,
+    });
+  },
+  [sendRaw]
+);
+
+  return { sendMessage, sendRaw, respondToProposal, deleteMessage };
 }

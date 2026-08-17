@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   Check,
   CheckCheck,
+  Trash2,
 } from "lucide-react";
 import { timeAgo, STATUS_META } from "./utils";
 import { useAuth } from "../../context/AuthContext";
@@ -198,14 +199,14 @@ function getEndTime(start, durationMin) {
 function TermProposalMessage({
   proposal,
   isMe,
-  responseStatus, // 'pending' | 'accepted' | 'declined' | null — from msg.response_status
+  responseStatus,
   createdAt,
   onAccept,
   onCounter,
   onDecline,
 }) {
-  const { giveHours, receiveHours } = proposal;
-  const [submitting, setSubmitting] = useState(null); // 'accept' | 'decline' | null
+  const { giveHours, receiveHours } = proposal || {};
+  const [submitting, setSubmitting] = useState(null);
 
   const waitingText = () => {
     if (!createdAt) return "Awaiting response...";
@@ -315,13 +316,13 @@ function TermProposalMessage({
 function SessionProposalMessage({
   metadata,
   isMe,
-  responseStatus, // 'pending' | 'accepted' | 'declined' | null
+  responseStatus,
   onAccept,
   onDecline,
 }) {
-  const sessions = metadata.sessions || [];
-  const isRecurring = metadata.type === "recurring";
-  const [submitting, setSubmitting] = useState(null); // 'accept' | 'decline' | null
+  const sessions = metadata?.sessions || [];
+  const isRecurring = metadata?.type === "recurring";
+  const [submitting, setSubmitting] = useState(null);
 
   const isResolved =
     responseStatus === "accepted" || responseStatus === "declined";
@@ -509,6 +510,65 @@ function SessionConfirmedMessage({ sessions }) {
   );
 }
 
+// ─── Image & File Viewers ──────────────────────────────────────────
+function ImageMessage({ msg, isMe }) {
+  const imageUrl = msg.file_url || msg.file || msg.metadata?.url;
+  return (
+    <div className={`flex ${isMe ? "justify-end" : "justify-start"} my-2`}>
+      <div className="max-w-[70%] space-y-1">
+        <img
+          src={imageUrl}
+          alt={msg.metadata?.file_name || "Sent image"}
+          className="rounded-2xl max-h-72 object-cover border border-slate-200/60 shadow-sm"
+        />
+        {msg.content && (
+          <p className={`text-[13px] px-3 py-1.5 rounded-xl ${isMe ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-800"}`}>
+            {msg.content}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FileMessage({ msg, isMe }) {
+  const fileUrl = msg.file_url || msg.file || msg.metadata?.url;
+  const fileName = msg.metadata?.file_name || "Attachment File";
+  const fileSize = msg.metadata?.file_size
+    ? `${(msg.metadata.file_size / 1024).toFixed(1)} KB`
+    : null;
+
+  return (
+    <div className={`flex ${isMe ? "justify-end" : "justify-start"} my-2`}>
+      <a
+        href={fileUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        download
+        className={`flex items-center gap-3 p-3.5 rounded-2xl border max-w-xs transition-all ${
+          isMe
+            ? "bg-slate-900 text-white border-slate-800 hover:bg-slate-800"
+            : "bg-white text-slate-900 border-slate-200 hover:bg-slate-50"
+        } shadow-sm`}
+      >
+        <div className={`p-2.5 rounded-xl ${isMe ? "bg-slate-800 text-slate-200" : "bg-slate-100 text-slate-600"}`}>
+          <FileText className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-semibold truncate leading-tight">
+            {fileName}
+          </p>
+          {fileSize && (
+            <p className={`text-[11px] mt-0.5 ${isMe ? "text-slate-400" : "text-slate-500"}`}>
+              {fileSize}
+            </p>
+          )}
+        </div>
+      </a>
+    </div>
+  );
+}
+
 // ─── Main MessageBubble ──────────────────────────────────────────
 function MessageBubble({
   msg,
@@ -520,10 +580,11 @@ function MessageBubble({
   onCounterTerm,
 }) {
   const { user } = useAuth();
-  const isMe = msg.sender_id === user.id;
+  const isMe = msg.sender_id === user?.id || msg.sender === user?.id || msg.isMe;
   const avatar =
-    partner.avatar ||
+    partner?.avatar ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(partner?.name)}&background=f1f5f9&color=475569`;
+
   const Receipt = () => {
     if (!isMe || msg.message_type === "system") return null;
     if (msg.status === "read")
@@ -569,8 +630,10 @@ function MessageBubble({
         onDecline={onDeclineProposal}
       />
     );
+
   if (msg.message_type === "session_confirmed")
     return <SessionConfirmedMessage sessions={msg.metadata?.sessions || []} />;
+
   if (msg.message_type === "term_proposal")
     return (
       <TermProposalMessage
@@ -583,6 +646,13 @@ function MessageBubble({
         onDecline={onDeclineTerm}
       />
     );
+
+  if (msg.message_type === "image")
+    return <ImageMessage msg={msg} isMe={isMe} />;
+
+  if (msg.message_type === "file")
+    return <FileMessage msg={msg} isMe={isMe} />;
+
   if (msg.message_type === "session_ended") {
     return (
       <div className="flex justify-center my-4">
@@ -595,6 +665,7 @@ function MessageBubble({
       </div>
     );
   }
+
   if (msg.message_type === "schedule") {
     return (
       <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
@@ -627,7 +698,7 @@ function MessageBubble({
         {!isMe && (
           <img
             src={avatar}
-            className="w-6 h-6 rounded-full mb-1 ring-2 ring-white"
+            className="w-6 h-6 rounded-full mb-1 ring-2 ring-white object-cover"
             alt=""
           />
         )}
@@ -641,6 +712,7 @@ function MessageBubble({
     </div>
   );
 }
+
 // ─── Message List ──────────────────────────────────────────────────
 function MessageList({
   conv,
@@ -656,13 +728,14 @@ function MessageList({
   const validMessages = Array.isArray(messages)
     ? messages.filter((msg) => Boolean(msg))
     : [];
+
   useEffect(() => {
-    const currentLength = conv.messages.length;
+    const currentLength = conv?.messages?.length || 0;
     if (currentLength > prevLengthRef.current && prevLengthRef.current > 0) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
     prevLengthRef.current = currentLength;
-  }, [conv.messages.length]);
+  }, [conv?.messages?.length]);
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-white overscroll-contain">
@@ -697,25 +770,66 @@ function MessageList({
 }
 
 // ─── Chat Input ──────────────────────────────────────────────────
-function ChatInput({ onSendMessage, onOpenScheduler, onOpenTermChange }) {
+function ChatInput({ onSendMessage, sendFile, onOpenScheduler, onOpenTermChange }) {
   const [msg, setMsg] = useState("");
+  const fileInputRef = useRef(null);
+
+  const handlePaperclipClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  if (typeof sendFile === "function") {
+    await sendFile(file, "");
+  } else {
+    console.error("sendFile prop missing or invalid in ChatInput");
+  }
+  e.target.value = "";
+};
+
+  const handleSend = () => {
+    if (!msg.trim()) return;
+    onSendMessage(msg.trim());
+    setMsg("");
+  };
 
   return (
     <div className="shrink-0 bg-white border-t border-slate-200 px-6 py-4">
+      {/* Hidden File Input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        accept="image/*,.pdf,.doc,.docx,.zip"
+      />
+
       <div className="max-w-3xl mx-auto">
         <div className="flex items-end gap-2 bg-slate-50 rounded-xl border border-slate-200 p-2 focus-within:border-slate-300 focus-within:bg-white transition-all">
-          <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors shrink-0">
+          <button
+            type="button"
+            onClick={handlePaperclipClick}
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors shrink-0 cursor-pointer"
+            title="Attach file"
+          >
             <Paperclip className="w-[18px] h-[18px]" />
           </button>
           <button
+            type="button"
             onClick={onOpenScheduler}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors shrink-0 cursor-pointer"
+            title="Propose schedule"
           >
             <Calendar className="w-[18px] h-[18px]" />
           </button>
           <button
+            type="button"
             onClick={onOpenTermChange}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors shrink-0 cursor-pointer"
+            title="Propose terms"
           >
             <Repeat className="w-[18px] h-[18px]" />
           </button>
@@ -728,20 +842,22 @@ function ChatInput({ onSendMessage, onOpenScheduler, onOpenTermChange }) {
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                setMsg("");
+                handleSend();
               }
             }}
           />
           <div className="flex items-center gap-0.5 shrink-0 pb-0.5">
-            <button className="p-2 text-slate-400 hover:text-amber-500 hover:bg-slate-100 rounded-lg transition-colors">
+            <button
+              type="button"
+              className="p-2 text-slate-400 hover:text-amber-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+            >
               <Smile className="w-[18px] h-[18px]" />
             </button>
             <button
-              onClick={() => {
-                onSendMessage(msg);
-                setMsg("");
-              }}
-              className="p-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all active:scale-95"
+              type="button"
+              onClick={handleSend}
+              disabled={!msg.trim()}
+              className="p-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all active:scale-95 disabled:opacity-40 disabled:hover:bg-slate-900 cursor-pointer"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -783,7 +899,6 @@ function EmptyChatState() {
   );
 }
 
-// ─── Main ChatThread ─────────────────────────────────────────────
 export default function ChatThread({
   conv,
   mobileView,
@@ -800,6 +915,8 @@ export default function ChatThread({
   onOpenScheduler,
   onOpenTermChange,
   sendMessage,
+  sendFile,
+  onDeleteMessage,
 }) {
   if (!conv) return <EmptyChatState />;
 
@@ -835,9 +952,11 @@ export default function ChatThread({
           onAcceptTerm={onAcceptTerm}
           onDeclineTerm={onDeclineTerm}
           onCounterTerm={onCounterTerm}
+          onDeleteMessage={onDeleteMessage}
         />
         <ChatInput
           onSendMessage={sendMessage}
+          sendFile={sendFile}
           onOpenScheduler={onOpenScheduler}
           onOpenTermChange={onOpenTermChange}
         />

@@ -6,8 +6,9 @@ from ..proposals.models import Proposal
 class MessageSerializer(serializers.ModelSerializer):
     sender_id = serializers.ReadOnlyField(source='sender.id')
     sender_name = serializers.ReadOnlyField(source='sender.username')
-    message_type = serializers.CharField()  # ← correct, no source needed
+    message_type = serializers.CharField()
     content = serializers.CharField()
+    file_url = serializers.SerializerMethodField()
     metadata = serializers.JSONField()
     time = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
@@ -21,12 +22,22 @@ class MessageSerializer(serializers.ModelSerializer):
             'is_system',
             'message_type',
             'content',
+            'file',
+            'file_url',
             'metadata',
             'response_status',
             'responded_at',
             'time',
             'status',
         )
+
+    def get_file_url(self, obj):
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            return obj.file.url
+        return None
 
     def get_time(self, obj):
         if not obj.created_at:
@@ -44,8 +55,8 @@ class MessageSerializer(serializers.ModelSerializer):
             ret['sender_name'] = 'System'
 
         # Backend's terms_updated maps to frontend's 'deal' type
-        if ret.get('messageType') == Message.MessageType.TERMS_UPDATED:
-            ret['messageType'] = 'deal'
+        if ret.get('message_type') == Message.MessageType.TERMS_UPDATED:
+            ret['message_type'] = 'deal'
         return ret
 
 
@@ -121,7 +132,13 @@ class ConversationSerializer(serializers.ModelSerializer):
 
     def get_lastMessage(self, obj):
         last = obj.messages.last()
-        return last.content if last else ''
+        if not last:
+            return ''
+        if last.message_type == 'image':
+            return '📷 Sent an image'
+        if last.message_type == 'file':
+            return '📁 Sent a file'
+        return last.content if last.content else ''
 
     def get_lastTime(self, obj):
         last = obj.messages.last()

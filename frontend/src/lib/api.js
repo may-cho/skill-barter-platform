@@ -20,8 +20,12 @@ class ApiClient {
   }
 
   async request(path, options = {}) {
+    // FormData သုံးထားပါက Content-Type ကို manual မသတ်မှတ်ရပါ (Browser မှ Boundary auto ချိန်ပေးမည်)
+    const isFormData = options.body instanceof FormData;
+    const defaultHeaders = isFormData ? {} : { "Content-Type": "application/json" };
+
     const headers = {
-      "Content-Type": "application/json",
+      ...defaultHeaders,
       ...options.headers,
     };
     const token = this.getToken();
@@ -29,11 +33,19 @@ class ApiClient {
 
     const res = await fetch(`${this.base}${path}`, { ...options, headers });
 
-    if (res.status === 401 && !path.includes("/auth/")) {
+    // FIX: Only skip token refresh for actual auth endpoints like /token/ and /register/
+    // Allowed endpoints like /auth/me/ SHOULD attempt token refresh on 401.
+    const isTokenEndpoint =
+      path.includes("/auth/token/") || path.includes("/auth/register/");
+
+    if (res.status === 401 && !isTokenEndpoint) {
       const refreshed = await this.refreshToken();
       if (refreshed) {
         headers.Authorization = `Bearer ${this.getToken()}`;
         return fetch(`${this.base}${path}`, { ...options, headers });
+      } else {
+        // Refresh token ပါ သက်တမ်းကုန်သွားပါက Logout လုပ်ခိုင်းရန်
+        this.clearTokens();
       }
     }
 
@@ -43,18 +55,23 @@ class ApiClient {
   async refreshToken() {
     const refresh = localStorage.getItem("refresh_token");
     if (!refresh) return false;
-    const res = await fetch(`${this.base}/auth/token/refresh/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh }),
-    });
-    if (!res.ok) {
+    try {
+      const res = await fetch(`${this.base}/auth/token/refresh/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh }),
+      });
+      if (!res.ok) {
+        this.clearTokens();
+        return false;
+      }
+      const data = await res.json();
+      localStorage.setItem("access_token", data.access);
+      return true;
+    } catch {
       this.clearTokens();
       return false;
     }
-    const data = await res.json();
-    localStorage.setItem("access_token", data.access);
-    return true;
   }
 
   async json(path, options = {}) {
@@ -62,7 +79,7 @@ class ApiClient {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(
-        err.detail || err.message || `Request failed: ${res.status}`,
+        err.detail || err.message || `Request failed: ${res.status}`
       );
     }
     if (res.status === 204) return null;
@@ -154,6 +171,18 @@ class ApiClient {
 
   getMessages(proposalId) {
     return this.json(`/proposals/${proposalId}/messages/`);
+  }
+
+  uploadMessageFile(proposalId, file, caption = "") {
+    const formData = new FormData();
+    formData.append("proposal_id", proposalId);
+    formData.append("file", file);
+    if (caption) formData.append("content", caption);
+
+    return this.json("/messages/upload_file/", {
+      method: "POST",
+      body: formData,
+    });
   }
 
   getAppointments() {
